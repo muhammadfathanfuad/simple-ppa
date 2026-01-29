@@ -1,0 +1,30 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: dp3a_mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: db_dp3a_pelaporan
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  backend:
+    build: ./backend
+    container_name: dp3a_backend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=db_dp3a_pelaporan
+    depends_on:
+      - db
+
+volumes:
+  db_data:
