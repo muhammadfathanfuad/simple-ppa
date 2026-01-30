@@ -18,6 +18,7 @@ services:
       - "5000:5000"
     volumes:
       - ./backend:/app
+      - ./backend/uploads:/app/uploads
     environment:
       - DB_HOST=db
       - DB_USER=root
