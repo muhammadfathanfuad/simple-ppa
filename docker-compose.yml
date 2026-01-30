@@ -18,8 +18,10 @@ services:
       - "5000:5000"
     volumes:
       - ./backend:/app
+      - /app/node_modules
       - ./backend/uploads:/app/uploads
     environment:
+      - DATABASE_URL=mysql://root:rootpassword@db:3306/db_dp3a_pelaporan
       - DB_HOST=db
       - DB_USER=root
       - DB_PASSWORD=rootpassword

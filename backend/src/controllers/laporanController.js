@@ -1,7 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
-const prisma = new PrismaClient();
 const fs = require("fs");
 const generateTicket = require("../utils/generateTicket");
+const prisma = new PrismaClient();
 
 const buatLaporan = async (req, res) => {
   // 1. Ekstraksi data dari body (Atomic: Semua data dikirim sekaligus) [cite: 8]
