@@ -1,19 +1,135 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
 
+:root {
+  --primary-teal: #088395;
+  --dark-teal: #09637E;
+  --muted-teal: #7AB2B2;
+  --light-cyan: #EBF4F6;
+}
+
 body {
-  font-family: 'Inter', sans-serif;
+  font-family: 'Space Grotesk', sans-serif;
+  margin: 0;
+  padding: 0;
   scroll-behavior: smooth;
-  background-color: #f8f9fa;
 }
 
-.navbar-brand {
-  font-size: 1.5rem;
-  letter-spacing: -1px;
+/* --- Desktop Styles --- */
+.custom-navbar {
+  height: 108px;
+  background: linear-gradient(90deg, #09637E 0%, #088395 100%);
+  display: flex;
+  align-items: center;
+  padding: 0 5%;
 }
 
-.btn-primary {
-  background-color: #0d6efd;
+.brand-container {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  text-decoration: none;
+}
+
+.navbar-logo {
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+}
+
+.brand-text {
+  font-size: 40px;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+  line-height: 1;
+  /* Padding 9px dihapus agar align-items: center bekerja sempurna secara otomatis */
+}
+
+.nav-list {
+  display: flex;
+  gap: 15px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  margin-left: auto;
+}
+
+.nav-link-custom {
+  font-size: 24px;
+  color: white;
+  text-decoration: none;
+  padding: 8px 25px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.nav-link-custom:hover, 
+.nav-link-custom.active {
+  background-color: var(--light-cyan);
+  color: var(--dark-teal) !important;
+  border: 2px solid white;
+}
+
+/* --- Mobile Menu Icon (Hamburger) --- */
+.mobile-menu-icon {
+  display: none; /* Sembunyi di desktop */
+  background: none;
   border: none;
-  padding: 10px 25px;
-  border-radius: 8px;
+  cursor: pointer;
 }
+
+.hamburger span {
+  display: block;
+  width: 30px;
+  height: 3px;
+  background: white;
+  margin: 5px 0;
+  transition: 0.4s;
+}
+
+/* --- Responsive Breakpoint (Tablet & Mobile) --- */
+@media (max-width: 992px) {
+  .custom-navbar {
+    height: 80px; 
+    padding: 0 20px;
+  }
+
+  .brand-text {
+    font-size: 28px;
+  }
+
+  .navbar-logo {
+    height: 45px;
+  }
+
+  .mobile-menu-icon {
+    display: block; 
+  }
+
+  .nav-list {
+    position: fixed;
+    top: 80px;
+    left: -100%; /* Sembunyi di kiri */
+    flex-direction: column;
+    background: var(--dark-teal);
+    width: 100%;
+    height: calc(100vh - 80px);
+    text-align: center;
+    transition: 0.5s;
+    gap: 30px;
+    padding-top: 50px;
+    z-index: 999;
+  }
+
+  .nav-list.nav-list-mobile {
+    left: 0; /* Muncul saat aktif */
+  }
+
+  .nav-link-custom {
+    font-size: 20px;
+    display: block;
+    width: 80%;
+    margin: 0 auto;
+  }
+} /* <--- Kurung tutup ini yang tadi hilang dan menyebabkan error */
