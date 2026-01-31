@@ -2,17 +2,18 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package saja untuk install dependencies
+# Install openssl untuk Prisma
+RUN apk add --no-cache openssl
+
 COPY package*.json ./
 RUN npm install
 
-# Copy folder prisma secara eksplisit sebelum generate
-COPY prisma ./prisma/
-RUN npx prisma generate
-
-# Baru copy seluruh source code lainnya
 COPY . .
+
+# Generate client di dalam environment Linux Docker
+RUN npx prisma generate
 
 EXPOSE 5000
 
-CMD ["npx", "nodemon", "index.js"]
+# Gunakan script dev yang sudah kita buat di package.json
+CMD ["npm", "run", "dev"]

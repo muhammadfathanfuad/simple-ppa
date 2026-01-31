@@ -1,30 +1,27 @@
-const { PrismaClient } = require("@prisma/client");
+const prisma = require("../lib/prisma"); // Pastikan menggunakan singleton agar tidak error lagi
 const fs = require("fs");
 const generateTicket = require("../utils/generateTicket");
-const prisma = new PrismaClient();
 
 const buatLaporan = async (req, res) => {
-  // 1. Ekstraksi data dari body (Atomic: Semua data dikirim sekaligus) [cite: 8]
   const { pelapor, korban, laporan } = req.body;
-  const files = req.files; // Hasil dari Multer
+  const files = req.files; 
   const nomorTiket = generateTicket();
 
   try {
-    // 2. Eksekusi Transaksi Database [cite: 5]
     const result = await prisma.$transaction(async (tx) => {
-      // Upsert Pelapor (Cek berdasarkan NIK) [cite: 8]
+      // Upsert Pelapor
       const pelaporData = await tx.pelapor.upsert({
         where: { nik: pelapor.nik || 'ANONIM-' + Date.now() },
         update: { ...pelapor },
         create: { ...pelapor },
       });
 
-      // Create Korban [cite: 8]
+      // Create Korban
       const korbanData = await tx.korban.create({
         data: { ...korban },
       });
 
-      // Create Laporan Utama & Hubungkan relasinya [cite: 13, 16]
+      // Create Laporan Utama
       const laporanBaru = await tx.laporan.create({
         data: {
           nomor_tiket: nomorTiket,
@@ -39,7 +36,7 @@ const buatLaporan = async (req, res) => {
         },
       });
 
-      // Simpan path file bukti ke database [cite: 8]
+      // Simpan path file bukti
       if (files && files.length > 0) {
         await tx.bukti.createMany({
           data: files.map((file) => ({
@@ -53,26 +50,21 @@ const buatLaporan = async (req, res) => {
       return laporanBaru;
     });
 
-    // 3. Respon Sukses
     res.status(201).json({
       message: "Laporan berhasil terkirim",
-      nomor_tiket: result.nomor_tiket, // Untuk Cek Status 
+      nomor_tiket: result.nomor_tiket,
     });
 
   } catch (error) {
-    // 4. Manajemen Error & Rollback Fisik (Hapus file jika DB gagal)
     if (files && files.length > 0) {
       files.forEach((file) => {
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
       });
     }
-
     console.error("Error Pelaporan:", error);
-    res.status(500).json({ message: "Gagal memproses laporan, silakan coba lagi." });
+    res.status(500).json({ message: "Gagal memproses laporan." });
   }
 };
-
-module.exports = { buatLaporan };
 
 const cekStatusLaporan = async (req, res) => {
   const { nomor_tiket } = req.params;
@@ -85,7 +77,6 @@ const cekStatusLaporan = async (req, res) => {
         status: true,
         createdAt: true,
         updatedAt: true,
-        // Kita hanya kirim data status, jangan kirim data sensitif korban ke publik
       }
     });
 
@@ -97,4 +88,10 @@ const cekStatusLaporan = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Gagal mengambil data status." });
   }
+};
+
+// PERBAIKAN: King harus mengekspor semua fungsi di akhir file dalam satu objek
+module.exports = { 
+  buatLaporan, 
+  cekStatusLaporan 
 };

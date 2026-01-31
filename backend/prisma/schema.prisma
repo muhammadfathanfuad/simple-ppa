@@ -1,93 +1,16 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
   provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
-// 1. Tabel Laporan (Inti Sistem)
+// Masukkan satu model sederhana untuk testing
 model Laporan {
-  id               String      @id @default(uuid()) // ID Unik untuk Tracking 
-  nomor_tiket      String      @unique // ID yang lebih pendek untuk user cek status 
-  kategori_kekerasan Kategori  // Fisik, Psikis, Seksual, dll
-  deskripsi_kejadian String    @db.Text 
-  tanggal_kejadian   DateTime 
-  lokasi_kejadian    String    @db.Text 
-  
-  // Fitur GIS Mapping 
-  latitude           Float?
-  longitude          Float?
-
-  status           Status      @default(PENDING) 
-  catatan_internal String?     @db.Text 
-  
-  // Relasi
-  pelapor          Pelapor     @relation(fields: [pelaporId], references: [id])
-  pelaporId        String
-  korban           Korban?     @relation(fields: [korbanId], references: [id])
-  korbanId         String?
-  bukti            Bukti[] 
-  
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-}
-
-// 2. Tabel Pelapor (Bisa Anonim) 
-model Pelapor {
-  id               String    @id @default(uuid())
-  nama             String?   // Kosongkan jika anonim
-  nik              String?   @unique
-  telepon          String 
-  alamat           String?   @db.Text
-  laporan          Laporan[]
-}
-
-// 3. Tabel Korban (Jika berbeda dengan Pelapor) 
-model Korban {
-  id               String    @id @default(uuid())
-  nama             String
-  usia             Int
-  jenis_kelamin    String
-  laporan          Laporan[]
-}
-
-// 4. Tabel Bukti (File Upload) 
-model Bukti {
-  id               String   @id @default(uuid())
-  file_url         String   // Path ke file di storage 
-  tipe_file        String   // image/pdf/docx
-  laporan          Laporan  @relation(fields: [laporanId], references: [id])
-  laporanId        String
-}
-
-// 5. Tabel Admin (Petugas DP3A) 
-model User {
-  id       String @id @default(uuid())
-  username String @unique
-  password String
-  nama     String
-  role     Role   @default(PETUGAS)
-}
-
-// Enums untuk Standarisasi Data
-enum Status {
-  PENDING
-  VERIFIKASI
-  PROSES
-  SELESAI 
-}
-
-enum Kategori {
-  FISIK
-  PSIKIS
-  SEKSUAL
-  EKSPLOITASI
-  PENELANTARAN
-  LAINNYA 
-}
-
-enum Role {
-  ADMIN
-  PETUGAS 
+  id        Int      @id @default(autoincrement())
+  judul     String
+  createdAt DateTime @default(now())
 }
