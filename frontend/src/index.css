@@ -61,7 +61,7 @@ body {
 .btn-hero:hover { transform: translateY(-3px); }
 .btn-lapor { background-color: var(--dark-teal); color: var(--white); border: none; }
 .btn-status { background-color: transparent; color: var(--dark-teal); border: 3px solid var(--dark-teal); }
-.hero-image-full { width: 100%; max-height: 600px; object-fit: cover; border-top-left-radius: 100px; border-bottom-left-radius: 100px; margin-right: -10%; }
+.hero-image-full { width: 100%; max-height: 700px; object-fit: cover; border-top-left-radius: 100px; border-bottom-left-radius: 100px; margin-right: -10%; }
 
 /* Edukasi Section */
 .edu-section { padding: 80px 60px 20px 60px; }
@@ -134,4 +134,160 @@ body {
   .step-card { padding: 40px 20px; margin-bottom: 20px; }
   .step-title { font-size: 28px; }
   .hamburger span { width: 28px; }
+}
+
+/* index.css - Formulir Pelaporan */
+
+.form-main-title {
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--dark-teal);
+  letter-spacing: -0.05em;
+  margin-bottom: 30px;
+}
+
+.form-container {
+  background-color: var(--dark-teal); /* Latar belakang teal tua sesuai desain */
+  border-radius: 30px;
+  padding: 50px;
+  color: var(--white);
+}
+
+.form-section-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 30px;
+}
+
+.form-label {
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.form-control-custom {
+  font-size: 24px;
+  background-color: var(--light-cyan);
+  border: none;
+  border-radius: 15px;
+  padding: 12px 20px;
+  color: var(--dark-teal);
+  width: 100%;
+}
+
+/* Stepper Bar Styles */
+.stepper-wrapper {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 50px;
+  position: relative;
+}
+
+.step-item {
+  text-align: center;
+  z-index: 2;
+  flex: 1;
+}
+
+.step-number {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background-color: var(--muted-teal);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.step-item.active .step-number {
+  background-color: var(--primary-teal);
+  box-shadow: 0 0 0 5px rgba(8, 131, 149, 0.2);
+}
+
+.step-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dark-teal);
+}
+
+/* index.css - Tambahan untuk Radio Button Custom */
+
+.custom-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.form-check-input:checked {
+  background-color: var(--primary-teal) !important;
+  border-color: var(--primary-teal) !important;
+}
+
+.radio-label {
+  font-size: 20px; /* Sedikit lebih kecil dari label utama agar proporsional */
+  font-weight: 500;
+  color: var(--white);
+  cursor: pointer;
+}
+
+.input-lainnya {
+  background-color: rgba(235, 244, 246, 0.3) !important;
+  border: 1px solid var(--light-cyan) !important;
+  color: var(--white) !important;
+  font-size: 18px !important;
+  margin-top: 10px;
+}
+
+.input-lainnya::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* index.css - Tambahan Step 3 */
+
+.btn-buat-laporan {
+  background-color: #588e00; /* Warna hijau sesuai desain */
+  color: var(--white);
+  border: none;
+  font-size: 32px;
+  font-weight: 700;
+  padding: 15px 40px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+  transition: 0.3s ease;
+}
+
+.btn-buat-laporan:hover {
+  background-color: #467100;
+  transform: scale(1.05);
+  color: white;
+}
+
+.form-sub-label {
+  font-size: 16px;
+  opacity: 0.8;
+  font-weight: 400;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.pernyataan-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-top: 40px;
+}
+
+.checkbox-custom {
+  width: 25px;
+  height: 25px;
+  flex-shrink: 0;
+  margin-top: 5px;
 }

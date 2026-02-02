@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import foto1 from "../img/foto1.png";
 import edu1 from "../img/edu1.png";
 import edu2 from "../img/edu2.png"; // Pastikan formatnya .jpg sesuai file kamu
@@ -7,6 +8,7 @@ import edu4 from "../img/edu4.png"; // Pastikan formatnya .jpg sesuai file kamu
 import kami from "../img/kami.png";
 
 const Utama = () => {
+  const navigate = useNavigate();
   return (
     <>
       {" "}
@@ -28,7 +30,10 @@ const Utama = () => {
               </p>
 
               <div className="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
-                <button className="btn-hero btn-lapor shadow">
+                <button 
+                  className="btn-hero btn-lapor shadow"
+                  onClick={() => navigate('/laporkan')}
+                >
                   <i className="bi bi-megaphone-fill me-2"></i> Buat Laporan
                 </button>
 
@@ -207,7 +212,7 @@ const Utama = () => {
             {/* Step 1 */}
             <div className="col-lg-4 col-md-6">
               <div className="step-card">
-                <span className="step-number">Step 1</span>
+                <span className="">Step 1</span>
                 <h3 className="step-title">Isi Formulir</h3>
                 <p className="step-text">
                   Masukkan detail kejadian dan lokasi dengan lengkap.
@@ -218,7 +223,7 @@ const Utama = () => {
             {/* Step 2 */}
             <div className="col-lg-4 col-md-6">
               <div className="step-card">
-                <span className="step-number">Step 2</span>
+                <span className="">Step 2</span>
                 <h3 className="step-title">Dapatkan ID Laporan</h3>
                 <p className="step-text">
                   Simpan kode unik untuk memantau status laporan Anda.
@@ -229,7 +234,7 @@ const Utama = () => {
             {/* Step 3 */}
             <div className="col-lg-4 col-md-6">
               <div className="step-card">
-                <span className="step-number">Step 3</span>
+                <span className="">Step 3</span>
                 <h3 className="step-title">Verifikasi & Tindakan</h3>
                 <p className="step-text">
                   Tim kami akan memverifikasi laporan dan memberikan pendampingan jika diperlukan.
