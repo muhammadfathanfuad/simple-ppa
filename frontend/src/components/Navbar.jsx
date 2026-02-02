@@ -9,7 +9,7 @@ const Navbar = () => {
     // Fungsi untuk mengamati seksi mana yang sedang terlihat di layar
     const observerOptions = {
       root: null,
-      rootMargin: '-50% 0px -50% 0px', // Aktifkan saat seksi berada di tengah layar
+      rootMargin: '0px 0px -70% 0px', // Aktifkan saat seksi berada di tengah layar
       threshold: 0
     };
 
