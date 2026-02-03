@@ -1,6 +1,30 @@
-const prisma = require("../lib/prisma"); // Pastikan menggunakan singleton agar tidak error lagi
+const prisma = require("../lib/prisma");
 const fs = require("fs");
 const generateTicket = require("../utils/generateTicket");
+
+const getAllLaporan = async (req, res) => {
+  try {
+    const laporan = await prisma.laporan.findMany({
+      include: {
+        pelapor: true,
+        korban: true,
+        buktiLaporan: true, // Sesuai nama relasi di model Laporan
+      },
+      orderBy: {
+        dibuatPada: 'desc', // Sesuai nama field di schema
+      },
+    });
+
+    res.json({
+      message: "Berhasil mengambil semua data laporan",
+      count: laporan.length,
+      data: laporan,
+    });
+  } catch (error) {
+    console.error("Error Get All Laporan:", error);
+    res.status(500).json({ message: "Gagal mengambil data laporan." });
+  }
+};
 
 const buatLaporan = async (req, res) => {
   const { pelapor, korban, laporan } = req.body;
@@ -9,40 +33,48 @@ const buatLaporan = async (req, res) => {
 
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Upsert Pelapor
-      const pelaporData = await tx.pelapor.upsert({
-        where: { nik: pelapor.nik || 'ANONIM-' + Date.now() },
-        update: { ...pelapor },
-        create: { ...pelapor },
-      });
-
-      // Create Korban
-      const korbanData = await tx.korban.create({
-        data: { ...korban },
-      });
-
-      // Create Laporan Utama
-      const laporanBaru = await tx.laporan.create({
+      // Upsert Pelapor (Gunakan idLaporan sebagai unique karena di schema @unique)
+      const pelaporData = await tx.pelapor.create({
         data: {
-          nomor_tiket: nomorTiket,
-          kategori_kekerasan: laporan.kategori_kekerasan,
-          deskripsi_kejadian: laporan.deskripsi,
-          tanggal_kejadian: new Date(laporan.tanggal),
-          lokasi_kejadian: laporan.lokasi,
-          latitude: parseFloat(laporan.latitude),
-          longitude: parseFloat(laporan.longitude),
-          pelaporId: pelaporData.id,
-          korbanId: korbanData.id,
+          ...pelapor,
+          // Tangani field enum atau date jika perlu
+          tanggalLahir: pelapor.tanggalLahir ? new Date(pelapor.tanggalLahir) : null,
+          laporan: {
+            create: {
+              kodeLaporan: nomorTiket, // Di schema namanya kodeLaporan
+              idKecamatan: parseInt(laporan.idKecamatan),
+              idJenisKasus: parseInt(laporan.idJenisKasus),
+              idBentukKekerasan: parseInt(laporan.idBentukKekerasan),
+              lokasiLengkapKejadian: laporan.lokasiLengkapKejadian,
+              tanggalKejadian: new Date(laporan.tanggalKejadian),
+              kronologiKejadian: laporan.kronologiKejadian,
+              latitude: laporan.latitude ? parseFloat(laporan.latitude) : null,
+              longitude: laporan.longitude ? parseFloat(laporan.longitude) : null,
+              // Relasi Korban dalam satu nest
+              korban: {
+                create: {
+                  ...korban,
+                  tanggalLahir: korban.tanggalLahir ? new Date(korban.tanggalLahir) : null,
+                }
+              }
+            }
+          }
         },
+        include: { laporan: true }
       });
 
-      // Simpan path file bukti
+      const laporanBaru = pelaporData.laporan;
+
+      // Simpan bukti laporan
       if (files && files.length > 0) {
-        await tx.bukti.createMany({
+        await tx.buktiLaporan.createMany({
           data: files.map((file) => ({
-            file_url: file.path,
-            tipe_file: file.mimetype,
-            laporanId: laporanBaru.id,
+            idLaporan: laporanBaru.idLaporan,
+            jenisBukti: 'Foto', // Sesuaikan dengan enum JenisBukti di schema
+            lokasiFile: file.path,
+            namaFileAsli: file.originalname,
+            tipeFile: file.mimetype,
+            ukuranFile: BigInt(file.size)
           })),
         });
       }
@@ -52,7 +84,7 @@ const buatLaporan = async (req, res) => {
 
     res.status(201).json({
       message: "Laporan berhasil terkirim",
-      nomor_tiket: result.nomor_tiket,
+      nomor_tiket: result.kodeLaporan,
     });
 
   } catch (error) {
@@ -62,26 +94,26 @@ const buatLaporan = async (req, res) => {
       });
     }
     console.error("Error Pelaporan:", error);
-    res.status(500).json({ message: "Gagal memproses laporan." });
+    res.status(500).json({ message: "Gagal memproses laporan.", error: error.message });
   }
 };
 
 const cekStatusLaporan = async (req, res) => {
-  const { nomor_tiket } = req.params;
+  const { kode_laporan } = req.params; // Sesuaikan parameter
 
   try {
     const dataLaporan = await prisma.laporan.findUnique({
-      where: { nomor_tiket: nomor_tiket },
+      where: { kodeLaporan: kode_laporan },
       select: {
-        nomor_tiket: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
+        kodeLaporan: true,
+        statusLaporan: true,
+        dibuatPada: true,
+        diperbaruiPada: true,
       }
     });
 
     if (!dataLaporan) {
-      return res.status(404).json({ message: "Nomor tiket tidak ditemukan." });
+      return res.status(404).json({ message: "Kode laporan tidak ditemukan." });
     }
 
     res.json(dataLaporan);
@@ -90,8 +122,8 @@ const cekStatusLaporan = async (req, res) => {
   }
 };
 
-// PERBAIKAN: King harus mengekspor semua fungsi di akhir file dalam satu objek
 module.exports = { 
   buatLaporan, 
-  cekStatusLaporan 
+  cekStatusLaporan,
+  getAllLaporan 
 };

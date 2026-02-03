@@ -8,9 +8,281 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Masukkan satu model sederhana untuk testing
+// --- ENUMS ---
+
+enum SumberLaporan {
+  web
+  whatsapp
+  manual
+}
+
+enum StatusLaporan {
+  menunggu
+  diverifikasi
+  diproses
+  selesai
+  ditolak
+}
+
+enum JenisBukti {
+  Foto
+  Video
+  Dokumen
+  Lainnya
+}
+
+enum StatusPelapor {
+  Korban_Langsung @map("Korban Langsung")
+  Keluarga
+  Tetangga
+  Teman
+  Saksi
+  Lainnya
+}
+
+enum Pekerjaan {
+  Guru
+  Pedagang
+  Buruh
+  Wiraswasta
+  Karyawan
+  TNI_POLRI @map("TNI/POLRI")
+  Tani
+  Pelajar_Mahasiswa @map("Pelajar/Mahasiswa")
+  Ibu_Rumah_Tangga @map("Ibu Rumah Tangga")
+  Lainnya
+}
+
+enum Agama {
+  Islam
+  Katolik
+  Budha
+  Kristen
+  Hindu
+  Konghuchu
+  Lainnya
+}
+
+enum JenisKelamin {
+  Laki_laki @map("Laki-laki")
+  Perempuan
+}
+
+enum Kewarganegaraan {
+  WNI
+  WNA
+}
+
+enum Pendidikan {
+  Tidak_Sekolah @map("Tidak Sekolah")
+  SD
+  SLTP
+  SLTA
+  D1_D2_D3 @map("D1/D2/D3")
+  S1_S2_S3 @map("S1/S2/S3")
+  Lainnya
+}
+
+// --- MODELS ---
+
+model Admin {
+  idAdmin        BigInt    @id @default(autoincrement()) @map("id_admin")
+  namaAdmin      String    @db.VarChar(120) @map("nama_admin")
+  email          String    @unique @db.VarChar(120)
+  password       String    @db.VarChar(255)
+  aktif          Boolean?  @default(true)
+  dibuatPada     DateTime? @default(now()) @map("dibuat_pada") @db.DateTime(0)
+  diperbaruiPada DateTime? @default(now()) @updatedAt @map("diperbarui_pada") @db.DateTime(0)
+
+  laporanResponsibilitas Laporan[]          @relation("AdminResponsibility")
+  catatanAdmin          CatatanAdmin[]
+  logStatus             LogStatusLaporan[]
+
+  @@map("admin")
+}
+
 model Laporan {
-  id        Int      @id @default(autoincrement())
-  judul     String
-  createdAt DateTime @default(now())
+  idLaporan              BigInt        @id @default(autoincrement()) @map("id_laporan")
+  kodeLaporan            String        @unique @db.VarChar(30) @map("kode_laporan")
+  sumberLaporan          SumberLaporan? @default(web) @map("sumber_laporan")
+  statusLaporan          StatusLaporan? @default(menunggu) @map("status_laporan")
+  idKecamatan            Int           @map("id_kecamatan")
+  idJenisKasus           Int           @map("id_jenis_kasus")
+  idBentukKekerasan      Int           @map("id_bentuk_kekerasan")
+  jenisKasusLainnya      String?       @db.VarChar(120) @map("jenis_kasus_lainnya")
+  bentukKekerasanLainnya String?       @db.VarChar(120) @map("bentuk_kekerasan_lainnya")
+  tanggalKejadian        DateTime      @map("tanggal_kejadian") @db.Date
+  waktuKejadian          DateTime?     @map("waktu_kejadian") @db.Time(0)
+  lokasiLengkapKejadian  String        @db.VarChar(255) @map("lokasi_lengkap_kejadian")
+  uraianSingkat          String?       @db.VarChar(255) @map("uraian_singkat")
+  harapanKorban          String?       @db.Text @map("harapan_korban")
+  kronologiKejadian      String        @db.Text @map("kronologi_kejadian")
+  latitude               Decimal?      @db.Decimal(10, 7)
+  longitude              Decimal?      @db.Decimal(10, 7)
+  pernyataanKebenaran    Boolean?      @default(false) @map("pernyataan_kebenaran")
+  disetujuiPada          DateTime?     @map("disetujui_pada") @db.DateTime(0)
+  idAdminPenanggungjawab BigInt?       @map("id_admin_penanggungjawab")
+  diverifikasiPada       DateTime?     @map("diverifikasi_pada") @db.DateTime(0)
+  selesaiPada            DateTime?     @map("selesai_pada") @db.DateTime(0)
+  dibuatPada             DateTime?     @default(now()) @map("dibuat_pada") @db.DateTime(0)
+  diperbaruiPada         DateTime?     @default(now()) @updatedAt @map("diperbarui_pada") @db.DateTime(0)
+
+  kecamatan        Kecamatan       @relation(fields: [idKecamatan], references: [idKecamatan])
+  jenisKasus       JenisKasus      @relation(fields: [idJenisKasus], references: [idJenisKasus])
+  bentukKekerasan  BentukKekerasan @relation(fields: [idBentukKekerasan], references: [idBentukKekerasan])
+  adminPenanggung  Admin?          @relation("AdminResponsibility", fields: [idAdminPenanggungjawab], references: [idAdmin])
+  
+  pelapor          Pelapor?
+  korban           Korban?
+  buktiLaporan     BuktiLaporan[]
+  catatanAdmin     CatatanAdmin[]
+  layananLaporan   LayananLaporan[]
+  logStatus        LogStatusLaporan[]
+
+  @@map("laporan")
+}
+
+model Pelapor {
+  idPelapor            BigInt         @id @default(autoincrement()) @map("id_pelapor")
+  idLaporan            BigInt         @unique @map("id_laporan")
+  statusPelapor        StatusPelapor? @map("status_pelapor")
+  statusPelaporLainnya String?        @db.VarChar(80) @map("status_pelapor_lainnya")
+  anonimkanIdentitas   Boolean?       @default(false) @map("anonimkan_identitas")
+  nama                 String?        @db.VarChar(120)
+  alamatLengkap        String?        @db.VarChar(255) @map("alamat_lengkap")
+  tempatLahir          String?        @db.VarChar(80) @map("tempat_lahir")
+  tanggalLahir         DateTime?      @map("tanggal_lahir") @db.Date
+  nomorWhatsapp        String?        @db.VarChar(30) @map("nomor_whatsapp")
+  pekerjaan            Pekerjaan?
+  pekerjaanLainnya     String?        @db.VarChar(80) @map("pekerjaan_lainnya")
+  agama                Agama?
+  agamaLainnya         String?        @db.VarChar(50) @map("agama_lainnya")
+  dibuatPada           DateTime?      @default(now()) @map("dibuat_pada") @db.DateTime(0)
+
+  laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
+
+  @@map("pelapor")
+}
+
+model Korban {
+  idKorban          BigInt           @id @default(autoincrement()) @map("id_korban")
+  idLaporan         BigInt           @unique @map("id_laporan")
+  namaLengkap       String           @db.VarChar(120) @map("nama_lengkap")
+  nik               String?          @db.VarChar(30)
+  nomorWhatsapp     String?          @db.VarChar(30) @map("nomor_whatsapp")
+  alamatLengkap     String?          @db.VarChar(255) @map("alamat_lengkap")
+  tempatLahir       String?          @db.VarChar(80) @map("tempat_lahir")
+  tanggalLahir      DateTime?        @map("tanggal_lahir") @db.Date
+  jenisKelamin      JenisKelamin?    @map("jenis_kelamin")
+  kewarganegaraan   Kewarganegaraan?
+  pendidikan        Pendidikan?
+  pendidikanLainnya String?          @db.VarChar(80) @map("pendidikan_lainnya")
+  pekerjaan         Pekerjaan?
+  pekerjaanLainnya  String?          @db.VarChar(80) @map("pekerjaan_lainnya")
+  agama             Agama?
+  agamaLainnya      String?          @db.VarChar(50) @map("agama_lainnya")
+  dibuatPada        DateTime?        @default(now()) @map("dibuat_pada") @db.DateTime(0)
+
+  laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
+
+  @@map("korban")
+}
+
+model Kecamatan {
+  idKecamatan   Int       @id @default(autoincrement()) @map("id_kecamatan")
+  namaKecamatan String    @db.VarChar(100) @map("nama_kecamatan")
+  kodeKecamatan String?   @db.VarChar(20) @map("kode_kecamatan")
+  fileGeojson   String?   @db.Text @map("file_geojson")
+  warna         String?   @db.VarChar(50)
+  dibuatPada    DateTime? @default(now()) @map("dibuat_pada") @db.DateTime(0)
+
+  laporan Laporan[]
+
+  @@map("kecamatan")
+}
+
+model JenisKasus {
+  idJenisKasus   Int       @id @default(autoincrement()) @map("id_jenis_kasus")
+  namaJenisKasus String    @db.VarChar(60) @map("nama_jenis_kasus")
+  aktif          Boolean?  @default(true)
+  dibuatPada     DateTime? @default(now()) @map("dibuat_pada") @db.DateTime(0)
+
+  laporan Laporan[]
+
+  @@map("jenis_kasus")
+}
+
+model BentukKekerasan {
+  idBentukKekerasan   Int       @id @default(autoincrement()) @map("id_bentuk_kekerasan")
+  namaBentukKekerasan String    @db.VarChar(60) @map("nama_bentuk_kekerasan")
+  aktif               Boolean?  @default(true)
+  dibuatPada          DateTime? @default(now()) @map("dibuat_pada") @db.DateTime(0)
+
+  laporan Laporan[]
+
+  @@map("bentuk_kekerasan")
+}
+
+model BuktiLaporan {
+  idBukti      BigInt     @id @default(autoincrement()) @map("id_bukti")
+  idLaporan    BigInt     @map("id_laporan")
+  jenisBukti   JenisBukti @map("jenis_bukti")
+  namaFileAsli String?    @db.VarChar(255) @map("nama_file_asli")
+  lokasiFile   String     @db.VarChar(255) @map("lokasi_file")
+  tipeFile     String?    @db.VarChar(100) @map("tipe_file")
+  ukuranFile   BigInt?    @map("ukuran_file")
+  diunggahPada DateTime?  @default(now()) @map("diunggah_pada") @db.DateTime(0)
+
+  laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
+
+  @@map("bukti_laporan")
+}
+
+model CatatanAdmin {
+  idCatatan  BigInt    @id @default(autoincrement()) @map("id_catatan")
+  idLaporan  BigInt    @map("id_laporan")
+  idAdmin    BigInt    @map("id_admin")
+  isiCatatan String    @db.Text @map("isi_catatan")
+  dibuatPada DateTime? @default(now()) @map("dibuat_pada") @db.DateTime(0)
+
+  laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
+  admin   Admin   @relation(fields: [idAdmin], references: [idAdmin])
+
+  @@map("catatan_admin")
+}
+
+model JenisLayanan {
+  idJenisLayanan   Int      @id @default(autoincrement()) @map("id_jenis_layanan")
+  namaJenisLayanan String   @db.VarChar(80) @map("nama_jenis_layanan")
+  aktif            Boolean? @default(true)
+
+  layananLaporan LayananLaporan[]
+
+  @@map("jenis_layanan")
+}
+
+model LayananLaporan {
+  idLayannLaporan BigInt @id @default(autoincrement()) @map("id_layanan_laporan")
+  idLaporan       BigInt @map("id_laporan")
+  idJenisLayanan  Int    @map("id_jenis_layanan")
+
+  laporan      Laporan      @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
+  jenisLayanan JenisLayanan @relation(fields: [idJenisLayanan], references: [idJenisLayanan])
+
+  @@map("layanan_laporan")
+}
+
+model LogStatusLaporan {
+  idLog         BigInt        @id @default(autoincrement()) @map("id_log")
+  idLaporan     BigInt        @map("id_laporan")
+  statusLama    StatusLaporan @map("status_lama")
+  statusBaru    StatusLaporan @map("status_baru")
+  idAdmin       BigInt?       @map("id_admin")
+  catatanPerubahan String?    @db.Text @map("catatan_perubahan")
+  dibuatPada    DateTime?     @default(now()) @map("dibuat_pada") @db.DateTime(0)
+
+  laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
+  admin   Admin?  @relation(fields: [idAdmin], references: [idAdmin])
+
+  @@map("log_status_laporan")
 }

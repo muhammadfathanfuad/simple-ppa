@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const laporanController = require('../controllers/laporanController');
-const uploadBukti = require('../middlewares/upload');
+const { verifyToken } = require('../middlewares/authMiddleware');
 
-// Menggunakan .array('bukti', 5) artinya menerima maksimal 5 file dengan field name 'bukti'
-router.post('/laporan', uploadBukti.array('bukti', 5), laporanController.buatLaporan);
+// Route publik: Pelapor bisa mengirim laporan
+router.post('/submit', laporanController.buatLaporan);
+
+router.get('/all', verifyToken, laporanController.getAllLaporan);
 
 module.exports = router;
