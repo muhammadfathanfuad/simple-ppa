@@ -28,7 +28,7 @@ const getAllLaporan = async (req, res) => {
 
 const buatLaporan = async (req, res) => {
   const { pelapor, korban, laporan } = req.body;
-  const files = req.files; 
+  const files = req.files;
   const nomorTiket = generateTicket();
 
   try {
@@ -36,7 +36,9 @@ const buatLaporan = async (req, res) => {
       // Upsert Pelapor (Gunakan idLaporan sebagai unique karena di schema @unique)
       const pelaporData = await tx.pelapor.create({
         data: {
-          ...pelapor,
+          nama: pelapor.namaPelapor,
+          alamatLengkap: pelapor.alamatPelapor,
+          nomorWhatsapp: pelapor.noTelpPelapor,
           // Tangani field enum atau date jika perlu
           tanggalLahir: pelapor.tanggalLahir ? new Date(pelapor.tanggalLahir) : null,
           laporan: {
@@ -53,7 +55,9 @@ const buatLaporan = async (req, res) => {
               // Relasi Korban dalam satu nest
               korban: {
                 create: {
-                  ...korban,
+                  namaLengkap: korban.namaKorban,
+                  nik: korban.nikKorban,
+                  alamatLengkap: korban.alamatKorban,
                   tanggalLahir: korban.tanggalLahir ? new Date(korban.tanggalLahir) : null,
                 }
               }
@@ -122,8 +126,127 @@ const cekStatusLaporan = async (req, res) => {
   }
 };
 
-module.exports = { 
-  buatLaporan, 
+const getStatistik = async (req, res) => {
+  try {
+    const totalLaporan = await prisma.laporan.count();
+
+    const byStatus = await prisma.laporan.groupBy({
+      by: ['statusLaporan'],
+      _count: {
+        statusLaporan: true,
+      },
+    });
+
+    // Format output status
+    const statusStats = {
+      Menunggu: 0,
+      Diproses: 0,
+      Selesai: 0,
+      Ditolak: 0
+    };
+
+    byStatus.forEach(item => {
+      statusStats[item.statusLaporan] = item._count.statusLaporan;
+    });
+
+    // Count by Jenis Kasus (assuming relation or id check, here generic count)
+    // Note: To group by relation field name might be complex, so we group by idJenisKasus
+    // and ideally we would fetch the names, but for now returning IDs or if schema permits
+    const byJenis = await prisma.laporan.groupBy({
+      by: ['idJenisKasus'],
+      _count: {
+        idJenisKasus: true,
+      }
+    });
+
+    res.json({
+      total: totalLaporan,
+      status: statusStats,
+      jenisKasus: byJenis
+    });
+
+  } catch (error) {
+    console.error("Error Statistik:", error);
+    res.status(500).json({ message: "Gagal mengambil statistik." });
+  }
+};
+
+const updateStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body; // Expecting: Menunggu, Diproses, Selesai, Ditolak
+
+  try {
+    const updated = await prisma.laporan.update({
+      where: { idLaporan: parseInt(id) },
+      data: { statusLaporan: status },
+    });
+    res.json({ message: "Status berhasil diperbarui", data: updated });
+  } catch (error) {
+    res.status(500).json({ message: "Gagal update status." });
+  }
+};
+
+const getLokasiKasus = async (req, res) => {
+  try {
+    const lokasi = await prisma.laporan.findMany({
+      select: {
+        idLaporan: true,
+        kodeLaporan: true,
+        latitude: true,
+        longitude: true,
+        lokasiLengkapKejadian: true,
+        idJenisKasus: true
+      },
+      where: {
+        latitude: { not: null },
+        longitude: { not: null }
+      }
+    });
+
+    res.json(lokasi);
+  } catch (error) {
+    res.status(500).json({ message: "Gagal mengambil data GIS." });
+  }
+};
+
+const exportLaporan = async (req, res) => {
+  try {
+    const laporan = await prisma.laporan.findMany({
+      include: {
+        pelapor: true,
+        korban: true,
+      },
+      orderBy: { dibuatPada: 'desc' }
+    });
+
+    // Simple CSV Generation
+    const header = "Tiket,Status,Tanggal,Pelapor,Telp Pelapor,Korban,Jenis Kasus,Lokasi\n";
+    const rows = laporan.map(l => {
+      const tgl = l.dibuatPada ? new Date(l.dibuatPada).toISOString().split('T')[0] : '-';
+      // Sanitizing strings for CSV (replacing commas with space)
+      const safe = (str) => str ? String(str).replace(/,/g, ' ').replace(/\n/g, ' ') : '-';
+
+      return `${l.kodeLaporan},${l.statusLaporan},${tgl},${safe(l.pelapor?.namaPelapor)},${safe(l.pelapor?.noTelpPelapor)},${safe(l.korban?.[0]?.namaKorban || 'N/A')},${l.idJenisKasus},${safe(l.lokasiLengkapKejadian)}`;
+    }).join("\n");
+
+    const csvData = header + rows;
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="data_laporan.csv"');
+    res.send(csvData);
+
+  } catch (error) {
+    console.error("Export Error:", error);
+    res.status(500).json({ message: "Gagal export data." });
+  }
+};
+
+module.exports = {
+  buatLaporan,
   cekStatusLaporan,
-  getAllLaporan 
+  getAllLaporan,
+  getStatistik,
+  updateStatus,
+  getLokasiKasus,
+  exportLaporan
 };
