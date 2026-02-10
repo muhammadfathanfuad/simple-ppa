@@ -3,15 +3,44 @@ const fs = require("fs");
 const generateTicket = require("../utils/generateTicket");
 
 const getAllLaporan = async (req, res) => {
+  const { status, q, startDate, endDate } = req.query;
+
   try {
+    const whereClause = {};
+
+    if (status && status !== 'All') {
+      whereClause.statusLaporan = status;
+    }
+
+    if (q) {
+      whereClause.OR = [
+        { kodeLaporan: { contains: q } },
+        { pelapor: { nama: { contains: q } } },
+        { korban: { namaLengkap: { contains: q } } }
+      ];
+    }
+
+    if (startDate && endDate) {
+      whereClause.dibuatPada = {
+        gte: new Date(startDate),
+        lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+      };
+    } else if (startDate) {
+      whereClause.dibuatPada = {
+        gte: new Date(startDate)
+      };
+    }
+
     const laporan = await prisma.laporan.findMany({
+      where: whereClause,
       include: {
         pelapor: true,
         korban: true,
-        buktiLaporan: true, // Sesuai nama relasi di model Laporan
+        buktiLaporan: true,
+        jenisKasus: true,
       },
       orderBy: {
-        dibuatPada: 'desc', // Sesuai nama field di schema
+        dibuatPada: 'desc',
       },
     });
 
@@ -226,7 +255,7 @@ const exportLaporan = async (req, res) => {
       // Sanitizing strings for CSV (replacing commas with space)
       const safe = (str) => str ? String(str).replace(/,/g, ' ').replace(/\n/g, ' ') : '-';
 
-      return `${l.kodeLaporan},${l.statusLaporan},${tgl},${safe(l.pelapor?.namaPelapor)},${safe(l.pelapor?.noTelpPelapor)},${safe(l.korban?.[0]?.namaKorban || 'N/A')},${l.idJenisKasus},${safe(l.lokasiLengkapKejadian)}`;
+      return `${l.kodeLaporan},${l.statusLaporan},${tgl},${safe(l.pelapor?.nama)},${safe(l.pelapor?.nomorWhatsapp)},${safe(l.korban?.namaLengkap)},${l.idJenisKasus},${safe(l.lokasiLengkapKejadian)}`;
     }).join("\n");
 
     const csvData = header + rows;
@@ -241,6 +270,33 @@ const exportLaporan = async (req, res) => {
   }
 };
 
+const getLaporanDetail = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const laporan = await prisma.laporan.findUnique({
+      where: { idLaporan: parseInt(id) },
+      include: {
+        pelapor: true,
+        korban: true,
+        buktiLaporan: true,
+        jenisKasus: true,
+        bentukKekerasan: true, // Added for completeness
+        kecamatan: true // Added for completeness
+      },
+    });
+
+    if (!laporan) {
+      return res.status(404).json({ message: "Laporan tidak ditemukan" });
+    }
+
+    res.json(laporan);
+  } catch (error) {
+    console.error("Error fetching report detail:", error);
+    res.status(500).json({ message: "Gagal mengambil detail laporan" });
+  }
+};
+
 module.exports = {
   buatLaporan,
   cekStatusLaporan,
@@ -248,5 +304,6 @@ module.exports = {
   getStatistik,
   updateStatus,
   getLokasiKasus,
-  exportLaporan
+  exportLaporan,
+  getLaporanDetail
 };

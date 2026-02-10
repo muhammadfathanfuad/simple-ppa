@@ -1,7 +1,6 @@
 node_modules
-# Keep environment variables out of version control
 .env
-
+read_excel_structure.py
 /generated/prisma
 uploads/
 

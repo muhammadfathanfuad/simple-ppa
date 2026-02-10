@@ -9,6 +9,7 @@ router.get('/status/:kode_laporan', laporanController.cekStatusLaporan); // Feat
 
 // Admin Routes (Protected)
 router.get('/all', verifyToken, laporanController.getAllLaporan);
+router.get('/detail/:id', verifyToken, laporanController.getLaporanDetail);
 router.get('/stats', verifyToken, laporanController.getStatistik);    // Feature: Dashboard Stats
 router.put('/:id/status', verifyToken, laporanController.updateStatus); // Feature: Status Update
 router.get('/gis', verifyToken, laporanController.getLokasiKasus);      // Feature: GIS

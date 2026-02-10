@@ -90,6 +90,7 @@ model Admin {
   namaAdmin      String    @db.VarChar(120) @map("nama_admin")
   email          String    @unique @db.VarChar(120)
   password       String    @db.VarChar(255)
+  fotoProfil     String?   @db.VarChar(255) @map("foto_profil")
   aktif          Boolean?  @default(true)
   dibuatPada     DateTime? @default(now()) @map("dibuat_pada") @db.DateTime(0)
   diperbaruiPada DateTime? @default(now()) @updatedAt @map("diperbarui_pada") @db.DateTime(0)
@@ -157,6 +158,7 @@ model Pelapor {
   pekerjaanLainnya     String?        @db.VarChar(80) @map("pekerjaan_lainnya")
   agama                Agama?
   agamaLainnya         String?        @db.VarChar(50) @map("agama_lainnya")
+  hubunganDenganKorban String?        @db.VarChar(80) @map("hubungan_dengan_korban")
   dibuatPada           DateTime?      @default(now()) @map("dibuat_pada") @db.DateTime(0)
 
   laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
@@ -181,6 +183,9 @@ model Korban {
   pekerjaanLainnya  String?          @db.VarChar(80) @map("pekerjaan_lainnya")
   agama             Agama?
   agamaLainnya      String?          @db.VarChar(50) @map("agama_lainnya")
+  statusPerkawinan  String?          @db.VarChar(50) @map("status_perkawinan")
+  disabilitas       Boolean?         @default(false)
+  jenisDisabilitas  String?          @db.VarChar(120) @map("jenis_disabilitas")
   dibuatPada        DateTime?        @default(now()) @map("dibuat_pada") @db.DateTime(0)
 
   laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
