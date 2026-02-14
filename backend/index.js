@@ -1,6 +1,13 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors'); // Tambahkan ini agar frontend bisa akses backend nanti
+
+// Handle BigInt serialization
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
 const laporanRoutes = require('./src/routes/laporanRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes'); // Move dashboardRoutes import here

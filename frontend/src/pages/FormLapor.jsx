@@ -1,11 +1,16 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { findKecamatanByLocation, findNearestKecamatan } from '../utils/geometry';
 
 const FormLapor = () => {
     const navigate = useNavigate();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [ticket, setTicket] = useState(null);
+
+    const [kecamatanList, setKecamatanList] = useState([]);
+    const [jenisKasusList, setJenisKasusList] = useState([]);
+    const [files, setFiles] = useState([]);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -19,17 +24,51 @@ const FormLapor = () => {
         waktu: '12:00',
         lokasi: '',
         koordinat: null, // {lat, lng}
-        kategori: '',
+        idKecamatan: '',
+        jenisKelaminKorban: '',
+        kategori: '', // This will hold idJenisKasus
         kronologi: ''
     });
 
-    const categories = [
-        { id: '1', label: 'Fisik', icon: 'bi-bandaid' },
-        { id: '2', label: 'Psikis', icon: 'bi-heartbreak' },
-        { id: '3', label: 'Seksual', icon: 'bi-shield-exclamation' },
-        { id: '4', label: 'Penelantaran', icon: 'bi-house-slash' },
-        { id: '5', label: 'Lainnya', icon: 'bi-three-dots' },
-    ];
+    useEffect(() => {
+        // Fetch Master Data
+        const fetchData = async () => {
+            try {
+                const [kecRes, kasusRes] = await Promise.all([
+                    fetch('http://localhost:5000/api/laporan/master/kecamatan'),
+                    fetch('http://localhost:5000/api/laporan/master/jenis-kasus')
+                ]);
+
+                if (kecRes.ok) {
+                    const kecData = await kecRes.json();
+                    setKecamatanList(kecData);
+                }
+                if (kasusRes.ok) {
+                    const kasusData = await kasusRes.json();
+                    setJenisKasusList(kasusData);
+                }
+            } catch (err) {
+                console.error("Error fetching master data:", err);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const getIconForKasus = (nama) => {
+        const lower = nama.toLowerCase();
+        if (lower.includes('fisik')) return 'bi-bandaid';
+        if (lower.includes('psikis')) return 'bi-heartbreak';
+        if (lower.includes('seksual')) return 'bi-shield-exclamation';
+        if (lower.includes('elantaran')) return 'bi-house-slash';
+        return 'bi-three-dots';
+    };
+
+    // Replacement for static categories
+    const categories = jenisKasusList.map(item => ({
+        id: item.idJenisKasus.toString(),
+        label: item.namaJenisKasus,
+        icon: getIconForKasus(item.namaJenisKasus)
+    }));
 
     const getSafetyTips = (catId) => {
         switch (catId) {
@@ -60,14 +99,14 @@ const FormLapor = () => {
     // Use useCallback to prevent function recreation on every render
     const handleChange = useCallback((e) => {
         const { name, value } = e.target;
-        
+
         // Create a new object with the updated value
         const updatedData = { [name]: value };
-        
+
         // Update form state
         setFormData(prev => {
             const newFormData = { ...prev, ...updatedData };
-            
+
             // If the relationship is 'Korban Langsung' and we're updating the reporter fields,
             // also update the victim fields
             if (prev.hubungan === 'Korban Langsung') {
@@ -78,7 +117,7 @@ const FormLapor = () => {
                     newFormData.noHpKorban = value;
                 }
             }
-            
+
             return newFormData;
         });
     }, []);
@@ -88,7 +127,7 @@ const FormLapor = () => {
         const value = e.target.value;
         setFormData(prev => {
             const newFormData = { ...prev, hubungan: value };
-            
+
             if (value !== 'Korban Langsung') {
                 newFormData.namaKorban = '';
                 newFormData.noHpKorban = '';
@@ -96,50 +135,149 @@ const FormLapor = () => {
                 newFormData.namaKorban = prev.namaPelapor;
                 newFormData.noHpKorban = prev.noHpPelapor;
             }
-            
+
             return newFormData;
         });
     }, []);
+
+
 
     const handleLocation = useCallback(() => {
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((position) => {
                 const { latitude, longitude } = position.coords;
+
+                let foundKecamatan = findKecamatanByLocation(latitude, longitude, kecamatanList);
+                let isNearest = false;
+
+                if (!foundKecamatan) {
+                    // Fallback: Check nearest within 500m
+                    const nearest = findNearestKecamatan(latitude, longitude, kecamatanList, 500);
+                    if (nearest) {
+                        foundKecamatan = nearest;
+                        isNearest = true;
+                    }
+                }
+
                 setFormData(prev => ({
                     ...prev,
                     lokasi: `Lokasi Terkini (Lat: ${latitude.toFixed(5)}, Long: ${longitude.toFixed(5)})`,
-                    koordinat: { lat: latitude, lng: longitude }
+                    koordinat: { lat: latitude, lng: longitude },
+                    idKecamatan: foundKecamatan ? String(foundKecamatan.idKecamatan) : prev.idKecamatan
                 }));
+
+                if (foundKecamatan) {
+                    if (isNearest) {
+                        alert(`Lokasi Anda terdeteksi di dekat Kecamatan ${foundKecamatan.namaKecamatan}. Sistem telah memilihnya untuk Anda.`);
+                    } else {
+                        alert(`Lokasi terdeteksi di Kecamatan ${foundKecamatan.namaKecamatan}`);
+                    }
+                } else {
+                    alert(`Lokasi Anda (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) berada di luar wilayah deteksi otomatis database. Silakan pilih Kecamatan secara manual.`);
+                }
+
             }, () => {
                 alert('Gagal mengambil lokasi. Pastikan GPS aktif dan izin diberikan.');
             });
         } else {
             alert('Browser tidak mendukung Geolocation.');
         }
-    }, []);
+    }, [kecamatanList]);
 
     const handleNext = useCallback((e) => {
         if (e) e.preventDefault();
         setStep(prev => prev + 1);
     }, []);
-    
+
     const handleBack = useCallback((e) => {
         if (e) e.preventDefault();
         setStep(prev => prev - 1);
     }, []);
 
+    const handleFileChange = (e) => {
+        setFiles(Array.from(e.target.files));
+    };
+
     const handleSubmit = useCallback(async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        // SIMULASI REQUEST KE BACKEND
-        setTimeout(() => {
-            const simulatedTicket = `PPA-${new Date().getFullYear()}${Math.floor(Math.random() * 10000)}`;
-            setTicket(simulatedTicket);
+        const data = new FormData();
+
+        // Construct Payload Object
+        const payload = {
+            pelapor: {
+                namaPelapor: formData.namaPelapor,
+                noTelpPelapor: formData.noHpPelapor,
+                alamatPelapor: 'Alamat Pelapor',
+                tanggalLahir: null
+            },
+            korban: {
+                namaKorban: formData.namaKorban || formData.namaPelapor,
+                alamatKorban: formData.alamatKorban || '',
+                nikKorban: '',
+                jenisKelamin: formData.jenisKelaminKorban || null,
+                tanggalLahir: null
+            },
+            laporan: {
+                idKecamatan: formData.idKecamatan,
+                idJenisKasus: formData.kategori,
+                idBentukKekerasan: '1',
+                lokasiLengkapKejadian: formData.lokasi,
+                tanggalKejadian: formData.tanggal,
+                waktuKejadian: formData.waktu,
+                kronologiKejadian: formData.kronologi,
+                latitude: formData.koordinat ? formData.koordinat.lat : null,
+                longitude: formData.koordinat ? formData.koordinat.lng : null
+            }
+        };
+
+        // Validation
+        if (!payload.laporan.idJenisKasus) {
+            alert("Harap pilih jenis kekerasan.");
             setLoading(false);
-            setStep(5); // Masuk ke halaman sukses
-        }, 1500);
-    }, []);
+            return;
+        }
+        if (!payload.laporan.idKecamatan) {
+            alert("Harap pilih kecamatan.");
+            setLoading(false);
+            return;
+        }
+        if (!payload.laporan.kronologiKejadian) {
+            alert("Harap isi kronologi kejadian.");
+            setLoading(false);
+            return;
+        }
+
+        // Append JSON string
+        data.append('data', JSON.stringify(payload));
+
+        // Files
+        files.forEach(file => {
+            data.append('bukti', file);
+        });
+
+        try {
+            const response = await fetch('http://localhost:5000/api/laporan/submit', {
+                method: 'POST',
+                body: data
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                setTicket(result.nomor_tiket);
+                setStep(4);
+            } else {
+                alert(result.message || 'Gagal mengirim laporan');
+            }
+        } catch (error) {
+            console.error("Error submit:", error);
+            alert("Terjadi kesalahan koneksi");
+        } finally {
+            setLoading(false);
+        }
+    }, [formData, files]);
 
     // --- STEPS ---
 
@@ -198,6 +336,16 @@ const FormLapor = () => {
                             placeholder="Nama Korban"
                             className="w-full p-3 rounded-lg border border-slate-200 focus:ring-teal-500 outline-none"
                         />
+                        <select
+                            name="jenisKelaminKorban"
+                            value={formData.jenisKelaminKorban}
+                            onChange={handleChange}
+                            className={`w-full p-3 rounded-lg border border-slate-200 focus:ring-teal-500 outline-none bg-white ${!formData.jenisKelaminKorban ? 'text-slate-400' : 'text-slate-900'}`}
+                        >
+                            <option value="" disabled>Pilih Jenis Kelamin Korban</option>
+                            <option value="Laki-laki" className="text-slate-900">Laki-laki</option>
+                            <option value="Perempuan" className="text-slate-900">Perempuan</option>
+                        </select>
                         <input
                             type="tel"
                             name="noHpKorban"
@@ -236,24 +384,39 @@ const FormLapor = () => {
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Tanggal</label>
-                    <input 
-                        type="date" 
-                        name="tanggal" 
-                        value={formData.tanggal} 
-                        onChange={handleChange} 
-                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-teal-500 outline-none" 
+                    <input
+                        type="date"
+                        name="tanggal"
+                        value={formData.tanggal}
+                        onChange={handleChange}
+                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-teal-500 outline-none"
                     />
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Waktu (Perkiraan)</label>
-                    <input 
-                        type="time" 
-                        name="waktu" 
-                        value={formData.waktu} 
-                        onChange={handleChange} 
-                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-teal-500 outline-none" 
+                    <input
+                        type="time"
+                        name="waktu"
+                        value={formData.waktu}
+                        onChange={handleChange}
+                        className="w-full p-3 rounded-xl border border-slate-200 focus:ring-teal-500 outline-none"
                     />
                 </div>
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Kecamatan</label>
+                <select
+                    name="idKecamatan"
+                    value={formData.idKecamatan}
+                    onChange={handleChange}
+                    className="w-full p-4 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-teal-500 transition"
+                >
+                    <option value="">Pilih Kecamatan</option>
+                    {kecamatanList.map(kec => (
+                        <option key={kec.idKecamatan} value={kec.idKecamatan}>{kec.namaKecamatan}</option>
+                    ))}
+                </select>
             </div>
 
             <div>
@@ -274,6 +437,16 @@ const FormLapor = () => {
                     onChange={handleChange}
                     placeholder="Nama Jalan / Gedung / Patokan"
                     className="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 outline-none transition"
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Bukti Pendukung (Foto/Dokumen)</label>
+                <input
+                    type="file"
+                    multiple
+                    onChange={handleFileChange}
+                    className="w-full p-3 rounded-xl border border-slate-200 bg-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100"
                 />
             </div>
         </div>

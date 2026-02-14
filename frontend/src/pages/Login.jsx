@@ -27,7 +27,7 @@ const Login = () => {
             if (response.ok) {
                 // Login successful
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('admin', JSON.stringify(data.admin));
+                localStorage.setItem('user', JSON.stringify(data.admin));
                 navigate('/admin');
             } else {
                 setError(data.message || 'Login gagal. Periksa kembali email dan password Anda.');

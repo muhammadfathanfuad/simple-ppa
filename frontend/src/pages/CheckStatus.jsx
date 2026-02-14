@@ -7,34 +7,130 @@ const CheckStatus = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleCheck = (e) => {
+    // Helper to format status display (Title Case)
+    const toTitleCase = (str) => {
+        if (!str) return '-';
+        return str.replace(/\w\S*/g, (txt) => {
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
+    };
+
+    // Helper to get status badge color
+    const getStatusColor = (status) => {
+        if (!status) return 'bg-slate-100 text-slate-800 border-slate-200';
+        const normalizedStatus = toTitleCase(status);
+        switch (normalizedStatus) {
+            case 'Menunggu': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+            case 'Diverifikasi': return 'bg-blue-100 text-blue-800 border-blue-200';
+            case 'Diproses': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+            case 'Selesai': return 'bg-green-100 text-green-800 border-green-200';
+            case 'Ditolak': return 'bg-red-100 text-red-800 border-red-200';
+            default: return 'bg-slate-100 text-slate-800 border-slate-200';
+        }
+    };
+
+    const getTimeline = (data) => {
+        const status = data.statusLaporan ? data.statusLaporan.toLowerCase() : '';
+        const logs = data.logStatus || [];
+
+        // Helper to find log for a specific status
+        const getLog = (targetStatus) => logs.find(l => l.statusBaru === targetStatus);
+
+        const createdDate = new Date(data.dibuatPada).toLocaleString('id-ID');
+        const updatedDate = data.diperbaruiPada ? new Date(data.diperbaruiPada).toLocaleString('id-ID') : '-';
+
+        if (status === 'ditolak') {
+            const logDitolak = getLog('ditolak');
+            return [
+                { date: createdDate, status: 'Laporan Diterima', active: true },
+                {
+                    date: logDitolak ? new Date(logDitolak.dibuatPada).toLocaleString('id-ID') : updatedDate,
+                    status: 'Laporan Ditolak',
+                    active: true,
+                    color: 'text-red-600',
+                    note: logDitolak?.catatanPerubahan
+                }
+            ];
+        }
+
+        const levels = ['menunggu', 'diverifikasi', 'diproses', 'selesai'];
+        const currentLevel = levels.indexOf(status);
+
+        const logMenunggu = getLog('menunggu');
+        const logVerifikasi = getLog('diverifikasi');
+        const logProses = getLog('diproses');
+        const logSelesai = getLog('selesai');
+
+        return [
+            {
+                date: logMenunggu ? new Date(logMenunggu.dibuatPada).toLocaleString('id-ID') : createdDate,
+                status: 'Laporan Diterima',
+                active: currentLevel >= 0,
+                note: currentLevel === 0 ? logMenunggu?.catatanPerubahan : null
+            },
+            {
+                date: logVerifikasi ? new Date(logVerifikasi.dibuatPada).toLocaleString('id-ID') : (currentLevel >= 1 ? updatedDate : '-'),
+                status: 'Verifikasi Data',
+                active: currentLevel >= 1,
+                note: currentLevel === 1 ? logVerifikasi?.catatanPerubahan : null
+            },
+            {
+                date: logProses ? new Date(logProses.dibuatPada).toLocaleString('id-ID') : (currentLevel >= 2 ? updatedDate : '-'),
+                status: 'Tindak Lanjut / Proses',
+                active: currentLevel >= 2,
+                note: currentLevel === 2 ? logProses?.catatanPerubahan : null
+            },
+            {
+                date: logSelesai ? new Date(logSelesai.dibuatPada).toLocaleString('id-ID') : (data.selesaiPada ? new Date(data.selesaiPada).toLocaleString('id-ID') : (currentLevel === 3 ? updatedDate : '-')),
+                status: 'Selesai',
+                active: currentLevel === 3,
+                note: currentLevel === 3 ? logSelesai?.catatanPerubahan : null
+            }
+        ];
+    };
+
+    const handleCheck = async (e) => {
         e.preventDefault();
+
+        const cleanTicketId = ticketId.replace(/^#/, '').trim();
+        if (!cleanTicketId) {
+            setError('Masukan ID Laporan terlebih dahulu.');
+            return;
+        }
+
         setLoading(true);
         setError('');
         setStatusData(null);
 
-        // Simulate API call
-        setTimeout(() => {
-            setLoading(false);
-            if (ticketId === '12345') {
-                setStatusData({
-                    id: '12345',
-                    status: 'Sedang Diproses',
-                    date: '2023-10-27',
-                    description: 'Laporan kekerasan dalam rumah tangga.',
-                    timeline: [
-                        { date: '2023-10-27 10:00', status: 'Laporan Diterima', active: true },
-                        { date: '2023-10-28 09:00', status: 'Verifikasi Data', active: true },
-                        { date: '2023-10-29 14:00', status: 'Penanganan Tim', active: false },
-                        { date: '-', status: 'Selesai', active: false },
-                    ]
-                });
-            } else if (ticketId === 'ERROR') {
-                setError('Terjadi kesalahan sistem. Silakan coba lagi.');
-            } else {
-                setError('ID Laporan tidak ditemukan. Silakan periksa kembali ID Anda.');
+        try {
+            const response = await fetch(`http://localhost:5000/api/laporan/status/${cleanTicketId}`);
+
+            // Check if response is JSON
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("Respon server tidak valid (bukan JSON).");
             }
-        }, 1500);
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // Map backend response to frontend structure
+                setStatusData({
+                    id: data.kodeLaporan,
+                    status: data.statusLaporan,
+                    date: new Date(data.dibuatPada).toLocaleDateString('id-ID'),
+                    description: 'Pantau terus status laporan Anda disini.',
+                    timeline: getTimeline(data)
+                });
+            } else {
+                setError(data.message || 'ID Laporan tidak ditemukan.');
+            }
+        } catch (err) {
+            console.error("Check Status Error:", err);
+            setError('Terjadi kesalahan penulisan tiket atau ID tidak valid.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -96,8 +192,8 @@ const CheckStatus = () => {
                                         <h2 className="text-2xl font-bold text-slate-800 mb-1">Status Laporan #{statusData.id}</h2>
                                         <p className="text-slate-500">Diajukan pada: {statusData.date}</p>
                                     </div>
-                                    <span className="px-5 py-2 bg-yellow-100 text-yellow-700 rounded-full font-bold text-sm border border-yellow-200">
-                                        {statusData.status}
+                                    <span className={`px-5 py-2 rounded-full font-bold text-sm border ${getStatusColor(statusData.status)}`}>
+                                        {toTitleCase(statusData.status)}
                                     </span>
                                 </div>
 
@@ -110,8 +206,13 @@ const CheckStatus = () => {
 
                                             {/* Content */}
                                             <div className={`transition-all ${item.active ? 'opacity-100' : 'opacity-50 grayscale'}`}>
-                                                <h3 className={`text-lg font-bold ${item.active ? 'text-teal-700' : 'text-slate-600'}`}>{item.status}</h3>
-                                                <p className="text-slate-500 text-sm">{item.date}</p>
+                                                <h3 className={`text-lg font-bold ${item.color || (item.active ? 'text-teal-700' : 'text-slate-600')}`}>{item.status}</h3>
+                                                <p className="text-slate-500 text-sm mb-1">{item.date}</p>
+                                                {item.note && (
+                                                    <div className="bg-yellow-50 border border-yellow-100 p-2 rounded-lg text-xs text-yellow-800 mt-1 max-w-md">
+                                                        <span className="font-semibold block mb-0.5">{item.note}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     ))}

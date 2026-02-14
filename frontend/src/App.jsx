@@ -11,8 +11,9 @@ import Footer from './components/Footer';
 import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
 import ReportList from './pages/admin/ReportList';
-import FullComplaintForm from './pages/admin/FullComplaintForm';
+import FullComplaintForm from './pages/admin/input-manual/FullComplaintForm';
 import Settings from './pages/admin/Settings';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -25,12 +26,15 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Admin Routes */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="laporan" element={<ReportList />} />
-          <Route path="laporan/baru" element={<FullComplaintForm />} />
-          <Route path="laporan/:id/lengkap" element={<FullComplaintForm />} />
-          <Route path="pengaturan" element={<Settings />} />
+        {/* Admin Routes */}
+        <Route path="/admin" element={<ProtectedRoute />}>
+          <Route element={<AdminLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="laporan" element={<ReportList />} />
+            <Route path="laporan/baru" element={<FullComplaintForm />} />
+            <Route path="laporan/:id/lengkap" element={<FullComplaintForm />} />
+            <Route path="pengaturan" element={<Settings />} />
+          </Route>
         </Route>
       </Routes>
     </Router>

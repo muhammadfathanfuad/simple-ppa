@@ -5,3 +5,7 @@ read_excel_structure.py
 uploads/
 
 /src/generated/prisma
+
+backend_error.log
+debug_check_reports.js
+debug_report.js

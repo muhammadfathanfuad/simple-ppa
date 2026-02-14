@@ -56,9 +56,30 @@ const getAllLaporan = async (req, res) => {
 };
 
 const buatLaporan = async (req, res) => {
-  const { pelapor, korban, laporan } = req.body;
+  let { pelapor, korban, terlapor, trafficking, laporan } = req.body;
   const files = req.files;
   const nomorTiket = generateTicket();
+
+  // Handle FormData JSON string if present (for file uploads with nested data)
+  if (req.body.data) {
+    try {
+      const parsedData = JSON.parse(req.body.data);
+      pelapor = parsedData.pelapor;
+      korban = parsedData.korban;
+      terlapor = parsedData.terlapor;
+      laporan = parsedData.laporan;
+    } catch (e) {
+      return res.status(400).json({ message: "Format data tidak valid" });
+    }
+  }
+
+  // Validate Required Fields
+  if (!laporan.idKecamatan || isNaN(parseInt(laporan.idKecamatan))) {
+    return res.status(400).json({ message: "Kecamatan harus dipilih." });
+  }
+  if (!laporan.idJenisKasus || isNaN(parseInt(laporan.idJenisKasus))) {
+    return res.status(400).json({ message: "Jenis kasus harus dipilih." });
+  }
 
   try {
     const result = await prisma.$transaction(async (tx) => {
@@ -78,7 +99,16 @@ const buatLaporan = async (req, res) => {
               idBentukKekerasan: parseInt(laporan.idBentukKekerasan),
               lokasiLengkapKejadian: laporan.lokasiLengkapKejadian,
               tanggalKejadian: new Date(laporan.tanggalKejadian),
+              // Fix Time Parsing: append dummy date if only time string
+              waktuKejadian: laporan.waktuKejadian ? new Date(`1970-01-01T${laporan.waktuKejadian}:00Z`) : null,
               kronologiKejadian: laporan.kronologiKejadian,
+              harapanKorban: laporan.harapanKorban,
+              layananDibutuhkan: laporan.layananDibutuhkan,
+              rujukanDari: laporan.rujukanDari,
+              caraDatang: laporan.caraDatang,
+              namaKlien: laporan.namaKlien,
+              alamatKlien: laporan.alamatKlien,
+              penerimaPengaduan: laporan.penerimaPengaduan,
               latitude: laporan.latitude ? parseFloat(laporan.latitude) : null,
               longitude: laporan.longitude ? parseFloat(laporan.longitude) : null,
               // Relasi Korban dalam satu nest
@@ -87,9 +117,47 @@ const buatLaporan = async (req, res) => {
                   namaLengkap: korban.namaKorban,
                   nik: korban.nikKorban,
                   alamatLengkap: korban.alamatKorban,
+                  jenisKelamin: korban.jenisKelamin,
                   tanggalLahir: korban.tanggalLahir ? new Date(korban.tanggalLahir) : null,
+                  nomorTelepon: korban.nomorTelepon,
+                  jumlahAnak: korban.jumlahAnak ? parseInt(korban.jumlahAnak) : null,
+                  namaOrtuWali: korban.namaOrtuWali,
+                  alamatOrtuWali: korban.alamatOrtuWali,
+                  kewarganegaraanOrtuWali: korban.kewarganegaraanOrtuWali,
+                  pekerjaanAyah: korban.pekerjaanAyah,
+                  pekerjaanIbu: korban.pekerjaanIbu,
+                  jumlahSaudara: korban.jumlahSaudara ? parseInt(korban.jumlahSaudara) : null,
+                  hubunganDenganTerlapor: korban.hubunganDenganTerlapor,
                 }
-              }
+              },
+              terlapor: {
+                create: {
+                  nama: terlapor.nama,
+                  tempatLahir: terlapor.tempatLahir,
+                  tanggalLahir: terlapor.tanggalLahir ? new Date(terlapor.tanggalLahir) : null,
+                  alamat: terlapor.alamat,
+                  nomorTelepon: terlapor.nomorTelepon,
+                  pendidikan: terlapor.pendidikan,
+                  agama: terlapor.agama,
+                  pekerjaan: terlapor.pekerjaan,
+                  statusPerkawinan: terlapor.statusPerkawinan,
+                  namaOrtuWali: terlapor.namaOrtuWali,
+                  alamatOrtuWali: terlapor.alamatOrtuWali,
+                  pekerjaanOrtu: terlapor.pekerjaanOrtu,
+                  jumlahSaudara: terlapor.jumlahSaudara ? parseInt(terlapor.jumlahSaudara) : null,
+                  hubunganDenganKorban: terlapor.hubunganDenganKorban,
+                }
+              },
+              trafficking: trafficking && trafficking.isTrafficking ? {
+                create: {
+                  ruteTrafficking: trafficking.ruteTrafficking,
+                  alatTransportasi: trafficking.alatTransportasi,
+                  caraDigunakan: trafficking.caraDigunakan,
+                  bentukEksploitasi: trafficking.bentukEksploitasi,
+                  bentukPelanggaran: trafficking.bentukPelanggaran,
+                  bentukKriminalisasi: trafficking.bentukKriminalisasi,
+                }
+              } : undefined,
             }
           }
         },
@@ -127,6 +195,7 @@ const buatLaporan = async (req, res) => {
       });
     }
     console.error("Error Pelaporan:", error);
+    fs.writeFileSync('backend_error.log', error.toString() + "\n" + (error.stack || ''));
     res.status(500).json({ message: "Gagal memproses laporan.", error: error.message });
   }
 };
@@ -142,6 +211,15 @@ const cekStatusLaporan = async (req, res) => {
         statusLaporan: true,
         dibuatPada: true,
         diperbaruiPada: true,
+        logStatus: {
+          orderBy: { dibuatPada: 'desc' },
+          select: {
+            statusLama: true,
+            statusBaru: true,
+            catatanPerubahan: true,
+            dibuatPada: true
+          }
+        }
       }
     });
 
@@ -202,15 +280,43 @@ const getStatistik = async (req, res) => {
 
 const updateStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body; // Expecting: Menunggu, Diproses, Selesai, Ditolak
+  const { status, catatan } = req.body; // Added 'catatan' for optional log notes
 
   try {
-    const updated = await prisma.laporan.update({
+    // 1. Get current status first for logging
+    const currentLaporan = await prisma.laporan.findUnique({
       where: { idLaporan: parseInt(id) },
-      data: { statusLaporan: status },
+      select: { statusLaporan: true }
     });
-    res.json({ message: "Status berhasil diperbarui", data: updated });
+
+    if (!currentLaporan) {
+      return res.status(404).json({ message: "Laporan tidak ditemukan" });
+    }
+
+    // 2. Perform Update and Log creation in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const updated = await tx.laporan.update({
+        where: { idLaporan: parseInt(id) },
+        data: { statusLaporan: status.toLowerCase() }, // Ensure lowercase for Enum
+      });
+
+      // Create Log Entry
+      await tx.logStatusLaporan.create({
+        data: {
+          idLaporan: parseInt(id),
+          statusLama: currentLaporan.statusLaporan,
+          statusBaru: status.toLowerCase(), // Ensure lowercase here too
+          idAdmin: req.admin?.id_admin ? BigInt(req.admin.id_admin) : null, // Assumes req.admin is set by authMiddleware
+          catatanPerubahan: catatan || null
+        }
+      });
+
+      return updated;
+    });
+
+    res.json({ message: "Status berhasil diperbarui", data: result });
   } catch (error) {
+    console.error("Update Status Error:", error);
     res.status(500).json({ message: "Gagal update status." });
   }
 };
@@ -282,7 +388,8 @@ const getLaporanDetail = async (req, res) => {
         buktiLaporan: true,
         jenisKasus: true,
         bentukKekerasan: true, // Added for completeness
-        kecamatan: true // Added for completeness
+        kecamatan: true, // Added for completeness
+        terlapor: true
       },
     });
 
@@ -297,6 +404,276 @@ const getLaporanDetail = async (req, res) => {
   }
 };
 
+const updateLaporan = async (req, res) => {
+  const { id } = req.params;
+  let { pelapor, korban, terlapor, trafficking, laporan } = req.body;
+
+  try {
+    // --- Helper for Enum Mapping ---
+    // Maps a string input to a Prisma Enum value.
+    // If exact match (case-insensitive), returns it.
+    // If it matches a known alias (e.g. "TNI/POLRI"), returns the enum key.
+    // Otherwise, returns "Lainnya" and the original string is returned as the 'other' value.
+    const mapToEnum = (value, enumType, existingOtherValue) => {
+      if (!value) return { enumVal: undefined, otherVal: existingOtherValue };
+
+      // Normalization helpers
+      const valUpper = value.toString().toUpperCase().trim();
+
+      // Define Mappings for each Enum Type
+      const mappings = {
+        Pekerjaan: {
+          "GURU": "Guru",
+          "PEDAGANG": "Pedagang",
+          "BURUH": "Buruh",
+          "WIRASWASTA": "Wiraswasta",
+          "KARYAWAN": "Karyawan",
+          "TNI/POLRI": "TNI_POLRI", "TNI_POLRI": "TNI_POLRI",
+          "TANI": "Tani", "PETANI": "Tani",
+          "PELAJAR/MAHASISWA": "Pelajar_Mahasiswa", "PELAJAR_MAHASISWA": "Pelajar_Mahasiswa", "PELAJAR": "Pelajar_Mahasiswa", "MAHASISWA": "Pelajar_Mahasiswa",
+          "IBU RUMAH TANGGA": "Ibu_Rumah_Tangga", "IBU_RUMAH_TANGGA": "Ibu_Rumah_Tangga", "IRT": "Ibu_Rumah_Tangga",
+          "LAINNYA": "Lainnya"
+        },
+        Agama: {
+          "ISLAM": "Islam",
+          "KRISTEN": "Kristen",
+          "KATOLIK": "Katolik",
+          "HINDU": "Hindu",
+          "BUDHA": "Budha",
+          "ISLAM": "Islam",
+          "KONGHUCHU": "Konghuchu",
+          "LAINNYA": "Lainnya"
+        },
+        Pendidikan: {
+          "TIDAK SEKOLAH": "Tidak_Sekolah", "TIDAK_SEKOLAH": "Tidak_Sekolah",
+          "SD": "SD",
+          "SLTP": "SLTP", "SMP": "SLTP",
+          "SLTA": "SLTA", "SMA": "SLTA", "SMK": "SLTA",
+          "D1/D2/D3": "D1_D2_D3", "D3": "D1_D2_D3",
+          "S1/S2/S3": "S1_S2_S3", "S1": "S1_S2_S3", "SARJANA": "S1_S2_S3",
+          "LAINNYA": "Lainnya"
+        },
+        StatusPelapor: {
+          "KORBAN LANGSUNG": "Korban_Langsung", "KORBAN_LANGSUNG": "Korban_Langsung",
+          "KELUARGA": "Keluarga",
+          "TETANGGA": "Tetangga",
+          "TEMAN": "Teman",
+          "SAKSI": "Saksi",
+          "LAINNYA": "Lainnya"
+        },
+        JenisKelamin: { // Not strictly needed if dropdown, but good for safety
+          "LAKI-LAKI": "Laki_laki", "LAKI_LAKI": "Laki_laki",
+          "PEREMPUAN": "Perempuan"
+        }
+      };
+
+      const map = mappings[enumType];
+      if (!map) return { enumVal: undefined, otherVal: existingOtherValue }; // Should not happen if used correctly
+
+      // Check for direct match or mapped alias
+      if (map[valUpper]) {
+        return { enumVal: map[valUpper], otherVal: existingOtherValue };
+      }
+
+      // No match -> Lainnya
+      return { enumVal: "Lainnya", otherVal: value };
+    };
+
+
+    // Process Enums for Pelapor
+    const pelaporPekerjaan = mapToEnum(pelapor.pekerjaan, 'Pekerjaan', pelapor.pekerjaanLainnya);
+    const pelaporAgama = mapToEnum(pelapor.agama, 'Agama', pelapor.agamaLainnya);
+    const pelaporStatus = mapToEnum(pelapor.statusPelapor, 'StatusPelapor', pelapor.statusPelaporLainnya);
+    const pelaporJK = mapToEnum(pelapor.jenisKelamin, 'JenisKelamin', null);
+
+    // Process Enums for Korban
+    const korbanPekerjaan = mapToEnum(korban.pekerjaan, 'Pekerjaan', korban.pekerjaanLainnya);
+    const korbanAgama = mapToEnum(korban.agama, 'Agama', korban.agamaLainnya);
+    const korbanPendidikan = mapToEnum(korban.pendidikan, 'Pendidikan', korban.pendidikanLainnya);
+    const korbanJK = mapToEnum(korban.jenisKelamin, 'JenisKelamin', null);
+
+    // Process Enums for Terlapor (Note: Terlapor Job is String, but Pending/Agama are Enums)
+    const terlaporPendidikan = mapToEnum(terlapor.pendidikan, 'Pendidikan', null);
+    const terlaporAgama = mapToEnum(terlapor.agama, 'Agama', null);
+
+    const updatedLaporan = await prisma.laporan.update({
+      where: { idLaporan: BigInt(id) },
+      data: {
+        tanggalKejadian: laporan.tanggalKejadian ? new Date(laporan.tanggalKejadian) : undefined,
+        waktuKejadian: laporan.waktuKejadian ? new Date(`1970-01-01T${laporan.waktuKejadian}:00Z`) : undefined,
+        lokasiLengkapKejadian: laporan.lokasiLengkapKejadian,
+        kronologiKejadian: laporan.kronologiKejadian,
+        harapanKorban: laporan.harapanKorban,
+        layananDibutuhkan: laporan.layananDibutuhkan,
+        rujukanDari: laporan.rujukanDari,
+        caraDatang: laporan.caraDatang,
+        namaKlien: laporan.namaKlien,
+        alamatKlien: laporan.alamatKlien,
+        penerimaPengaduan: laporan.penerimaPengaduan,
+
+        // Relations
+        jenisKasus: laporan.idJenisKasus ? { connect: { idJenisKasus: parseInt(laporan.idJenisKasus) } } : undefined,
+        bentukKekerasan: laporan.idBentukKekerasan ? { connect: { idBentukKekerasan: parseInt(laporan.idBentukKekerasan) } } : undefined,
+
+        pelapor: {
+          upsert: {
+            create: {
+              nama: pelapor.nama,
+              // jenisKelamin removed from Pelapor schema check
+              tempatLahir: pelapor.tempatLahir,
+              alamatLengkap: pelapor.alamatLengkap,
+              nomorWhatsapp: pelapor.nomorWhatsapp,
+              pekerjaan: pelaporPekerjaan.enumVal,
+              pekerjaanLainnya: pelaporPekerjaan.otherVal,
+              agama: pelaporAgama.enumVal,
+              agamaLainnya: pelaporAgama.otherVal,
+              hubunganDenganKorban: pelapor.hubunganDenganKorban,
+              statusPelapor: pelaporStatus.enumVal,
+              statusPelaporLainnya: pelaporStatus.otherVal,
+              tanggalLahir: pelapor.tanggalLahir ? new Date(pelapor.tanggalLahir) : null,
+            },
+            update: {
+              nama: pelapor.nama,
+              // jenisKelamin removed
+              tempatLahir: pelapor.tempatLahir,
+              alamatLengkap: pelapor.alamatLengkap,
+              nomorWhatsapp: pelapor.nomorWhatsapp,
+              pekerjaan: pelaporPekerjaan.enumVal,
+              pekerjaanLainnya: pelaporPekerjaan.otherVal,
+              agama: pelaporAgama.enumVal,
+              agamaLainnya: pelaporAgama.otherVal,
+              hubunganDenganKorban: pelapor.hubunganDenganKorban,
+              statusPelapor: pelaporStatus.enumVal,
+              statusPelaporLainnya: pelaporStatus.otherVal,
+              tanggalLahir: pelapor.tanggalLahir ? new Date(pelapor.tanggalLahir) : null,
+            }
+          }
+        },
+        korban: {
+          upsert: {
+            create: {
+              namaLengkap: korban.namaLengkap,
+              nik: korban.nik,
+              nomorWhatsapp: korban.nomorWhatsapp,
+              alamatLengkap: korban.alamatLengkap,
+              tempatLahir: korban.tempatLahir,
+              tanggalLahir: korban.tanggalLahir ? new Date(korban.tanggalLahir) : null,
+              jenisKelamin: korbanJK.enumVal,
+              pendidikan: korbanPendidikan.enumVal,
+              pendidikanLainnya: korbanPendidikan.otherVal,
+              pekerjaan: korbanPekerjaan.enumVal,
+              pekerjaanLainnya: korbanPekerjaan.otherVal,
+              agama: korbanAgama.enumVal,
+              agamaLainnya: korbanAgama.otherVal,
+              statusPerkawinan: korban.statusPerkawinan,
+              disabilitas: korban.disabilitas,
+              jenisDisabilitas: korban.jenisDisabilitas,
+              nomorTelepon: korban.nomorTelepon,
+              jumlahAnak: korban.jumlahAnak ? parseInt(korban.jumlahAnak) : null,
+              namaOrtuWali: korban.namaOrtuWali,
+              alamatOrtuWali: korban.alamatOrtuWali,
+              kewarganegaraanOrtuWali: korban.kewarganegaraanOrtuWali,
+              pekerjaanAyah: korban.pekerjaanAyah,
+              pekerjaanIbu: korban.pekerjaanIbu,
+              jumlahSaudara: korban.jumlahSaudara ? parseInt(korban.jumlahSaudara) : null,
+              hubunganDenganTerlapor: korban.hubunganDenganTerlapor,
+            },
+            update: {
+              namaLengkap: korban.namaLengkap,
+              nik: korban.nik,
+              nomorWhatsapp: korban.nomorWhatsapp,
+              alamatLengkap: korban.alamatLengkap,
+              tempatLahir: korban.tempatLahir,
+              tanggalLahir: korban.tanggalLahir ? new Date(korban.tanggalLahir) : null,
+              jenisKelamin: korbanJK.enumVal,
+              pendidikan: korbanPendidikan.enumVal,
+              pendidikanLainnya: korbanPendidikan.otherVal,
+              pekerjaan: korbanPekerjaan.enumVal,
+              pekerjaanLainnya: korbanPekerjaan.otherVal,
+              agama: korbanAgama.enumVal,
+              agamaLainnya: korbanAgama.otherVal,
+              statusPerkawinan: korban.statusPerkawinan,
+              disabilitas: korban.disabilitas,
+              jenisDisabilitas: korban.jenisDisabilitas,
+              nomorTelepon: korban.nomorTelepon,
+              jumlahAnak: korban.jumlahAnak ? parseInt(korban.jumlahAnak) : null,
+              namaOrtuWali: korban.namaOrtuWali,
+              alamatOrtuWali: korban.alamatOrtuWali,
+              kewarganegaraanOrtuWali: korban.kewarganegaraanOrtuWali,
+              pekerjaanAyah: korban.pekerjaanAyah,
+              pekerjaanIbu: korban.pekerjaanIbu,
+              jumlahSaudara: korban.jumlahSaudara ? parseInt(korban.jumlahSaudara) : null,
+              hubunganDenganTerlapor: korban.hubunganDenganTerlapor,
+            }
+          }
+        },
+        terlapor: {
+          upsert: {
+            create: {
+              nama: terlapor.nama,
+              tempatLahir: terlapor.tempatLahir,
+              tanggalLahir: terlapor.tanggalLahir ? new Date(terlapor.tanggalLahir) : null,
+              alamat: terlapor.alamat,
+              nomorTelepon: terlapor.nomorTelepon,
+              pendidikan: terlaporPendidikan.enumVal,
+              agama: terlaporAgama.enumVal,
+              pekerjaan: terlapor.pekerjaan, // String in schema
+              statusPerkawinan: terlapor.statusPerkawinan,
+              namaOrtuWali: terlapor.namaOrtuWali,
+              alamatOrtuWali: terlapor.alamatOrtuWali,
+              pekerjaanOrtu: terlapor.pekerjaanOrtu,
+              jumlahSaudara: terlapor.jumlahSaudara ? parseInt(terlapor.jumlahSaudara) : null,
+              hubunganDenganKorban: terlapor.hubunganDenganKorban,
+            },
+            update: {
+              nama: terlapor.nama,
+              tempatLahir: terlapor.tempatLahir,
+              tanggalLahir: terlapor.tanggalLahir ? new Date(terlapor.tanggalLahir) : null,
+              alamat: terlapor.alamat,
+              nomorTelepon: terlapor.nomorTelepon,
+              pendidikan: terlaporPendidikan.enumVal,
+              agama: terlaporAgama.enumVal,
+              pekerjaan: terlapor.pekerjaan,
+              statusPerkawinan: terlapor.statusPerkawinan,
+              namaOrtuWali: terlapor.namaOrtuWali,
+              alamatOrtuWali: terlapor.alamatOrtuWali,
+              pekerjaanOrtu: terlapor.pekerjaanOrtu,
+              jumlahSaudara: terlapor.jumlahSaudara ? parseInt(terlapor.jumlahSaudara) : null,
+              hubunganDenganKorban: terlapor.hubunganDenganKorban,
+            }
+          }
+        },
+        trafficking: trafficking && trafficking.isTrafficking ? {
+          upsert: {
+            create: {
+              ruteTrafficking: trafficking.ruteTrafficking,
+              alatTransportasi: trafficking.alatTransportasi,
+              caraDigunakan: trafficking.caraDigunakan,
+              bentukEksploitasi: trafficking.bentukEksploitasi,
+              bentukPelanggaran: trafficking.bentukPelanggaran,
+              bentukKriminalisasi: trafficking.bentukKriminalisasi,
+            },
+            update: {
+              ruteTrafficking: trafficking.ruteTrafficking,
+              alatTransportasi: trafficking.alatTransportasi,
+              caraDigunakan: trafficking.caraDigunakan,
+              bentukEksploitasi: trafficking.bentukEksploitasi,
+              bentukPelanggaran: trafficking.bentukPelanggaran,
+              bentukKriminalisasi: trafficking.bentukKriminalisasi,
+            }
+          }
+        } : undefined,
+      }
+    });
+
+    res.status(200).json({ message: "Laporan berhasil diperbarui", data: updatedLaporan });
+  } catch (error) {
+    console.error("Error updating report:", error);
+    fs.writeFileSync('backend_error.log', error.toString() + "\n" + (error.stack || ''));
+    res.status(500).json({ message: "Gagal memperbarui laporan.", error: error.message });
+  }
+};
+
 module.exports = {
   buatLaporan,
   cekStatusLaporan,
@@ -305,5 +682,6 @@ module.exports = {
   updateStatus,
   getLokasiKasus,
   exportLaporan,
-  getLaporanDetail
+  getLaporanDetail,
+  updateLaporan
 };

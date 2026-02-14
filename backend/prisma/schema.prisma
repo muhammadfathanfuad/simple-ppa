@@ -127,6 +127,14 @@ model Laporan {
   selesaiPada            DateTime?     @map("selesai_pada") @db.DateTime(0)
   dibuatPada             DateTime?     @default(now()) @map("dibuat_pada") @db.DateTime(0)
   diperbaruiPada         DateTime?     @default(now()) @updatedAt @map("diperbarui_pada") @db.DateTime(0)
+  
+  layananDibutuhkan      String?       @db.VarChar(255) @map("layanan_dibutuhkan")
+  rujukanDari            String?       @db.VarChar(120) @map("rujukan_dari")
+  caraDatang             String?       @db.VarChar(50) @map("cara_datang")
+  
+  namaKlien              String?       @db.VarChar(120) @map("nama_klien")
+  alamatKlien            String?       @db.VarChar(255) @map("alamat_klien")
+  penerimaPengaduan      String?       @db.VarChar(120) @map("penerima_pengaduan")
 
   kecamatan        Kecamatan       @relation(fields: [idKecamatan], references: [idKecamatan])
   jenisKasus       JenisKasus      @relation(fields: [idJenisKasus], references: [idJenisKasus])
@@ -135,6 +143,8 @@ model Laporan {
   
   pelapor          Pelapor?
   korban           Korban?
+  terlapor         Terlapor?
+  trafficking      Trafficking?
   buktiLaporan     BuktiLaporan[]
   catatanAdmin     CatatanAdmin[]
   layananLaporan   LayananLaporan[]
@@ -186,11 +196,58 @@ model Korban {
   statusPerkawinan  String?          @db.VarChar(50) @map("status_perkawinan")
   disabilitas       Boolean?         @default(false)
   jenisDisabilitas  String?          @db.VarChar(120) @map("jenis_disabilitas")
+  nomorTelepon      String?          @db.VarChar(30) @map("nomor_telepon")
+  jumlahAnak        Int?             @map("jumlah_anak")
+  namaOrtuWali      String?          @db.VarChar(120) @map("nama_ortu_wali")
+  alamatOrtuWali    String?          @db.VarChar(255) @map("alamat_ortu_wali")
+  kewarganegaraanOrtuWali Kewarganegaraan? @map("kewarganegaraan_ortu_wali")
+  pekerjaanAyah     String?          @db.VarChar(100) @map("pekerjaan_ayah")
+  pekerjaanIbu      String?          @db.VarChar(100) @map("pekerjaan_ibu")
+  jumlahSaudara     Int?             @map("jumlah_saudara")
+  hubunganDenganTerlapor String?     @db.VarChar(100) @map("hubungan_dengan_terlapor")
   dibuatPada        DateTime?        @default(now()) @map("dibuat_pada") @db.DateTime(0)
 
   laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
 
   @@map("korban")
+}
+
+model Terlapor {
+  idTerlapor        BigInt           @id @default(autoincrement()) @map("id_terlapor")
+  idLaporan         BigInt           @unique @map("id_laporan")
+  nama              String           @db.VarChar(120)
+  tempatLahir       String?          @db.VarChar(80) @map("tempat_lahir")
+  tanggalLahir      DateTime?        @map("tanggal_lahir") @db.Date
+  alamat            String?          @db.VarChar(255)
+  nomorTelepon      String?          @db.VarChar(30) @map("nomor_telepon")
+  pendidikan        Pendidikan?
+  agama             Agama?
+  pekerjaan         String?          @db.VarChar(100)
+  statusPerkawinan  String?          @db.VarChar(50) @map("status_perkawinan") // Dropdown: Belum Nikah, Nikah, dll
+  namaOrtuWali      String?          @db.VarChar(120) @map("nama_ortu_wali")
+  alamatOrtuWali    String?          @db.VarChar(255) @map("alamat_ortu_wali")
+  pekerjaanOrtu     String?          @db.VarChar(100) @map("pekerjaan_ortu") // Gabungan atau salah satu?
+  jumlahSaudara     Int?             @map("jumlah_saudara")
+  hubunganDenganKorban String?       @db.VarChar(100) @map("hubungan_dengan_korban")
+  
+  laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
+
+  @@map("terlapor")
+}
+
+model Trafficking {
+  idTrafficking       BigInt   @id @default(autoincrement()) @map("id_trafficking")
+  idLaporan           BigInt   @unique @map("id_laporan")
+  ruteTrafficking     String?  @db.Text @map("rute_trafficking")
+  alatTransportasi    String?  @db.VarChar(100) @map("alat_transportasi")
+  caraDigunakan       String?  @db.Text @map("cara_digunakan")
+  bentukEksploitasi   String?  @db.Text @map("bentuk_eksploitasi")
+  bentukPelanggaran   String?  @db.Text @map("bentuk_pelanggaran")
+  bentukKriminalisasi String?  @db.Text @map("bentuk_kriminalisasi")
+
+  laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
+
+  @@map("trafficking")
 }
 
 model Kecamatan {

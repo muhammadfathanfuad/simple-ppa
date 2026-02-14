@@ -13,7 +13,7 @@ const Sidebar = ({ isOpen = true }) => {
     };
 
     return (
-        <div className={`${isOpen ? 'w-64' : 'w-20'} bg-slate-900 text-slate-100 min-h-screen flex flex-col transition-all duration-300 relative`}>
+        <div className={`${isOpen ? 'w-64' : 'w-20'} bg-slate-900 text-slate-100 h-full flex flex-col transition-all duration-300 relative`}>
             {/* Logo Section */}
             <div className={`p-6 border-b border-slate-700 flex items-center ${!isOpen && 'justify-center'} overflow-hidden whitespace-nowrap`}>
                 {isOpen ? (
@@ -40,13 +40,23 @@ const Sidebar = ({ isOpen = true }) => {
                         </div>
                     </div>
                 ) : (
-                    <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-                        {(JSON.parse(localStorage.getItem('user') || '{}').nama || 'A').charAt(0)}
+                    <div className="w-8 h-8 rounded-full bg-teal-500 flex items-center justify-center overflow-hidden shrink-0">
+                        {JSON.parse(localStorage.getItem('user') || '{}').fotoProfil ? (
+                            <img
+                                src={`http://localhost:5000${JSON.parse(localStorage.getItem('user')).fotoProfil}`}
+                                alt="Profile"
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <span className="text-white font-bold text-sm">
+                                {(JSON.parse(localStorage.getItem('user') || '{}').nama || 'A').charAt(0)}
+                            </span>
+                        )}
                     </div>
                 )}
             </div>
 
-            <nav className="flex-1 p-4 space-y-2">
+            <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                 <NavLink
                     to="/admin"
                     end
@@ -62,9 +72,9 @@ const Sidebar = ({ isOpen = true }) => {
                 </NavLink>
 
                 {/* Placeholder for future links */}
-                <div className={`pt-4 pb-2 ${!isOpen && 'hidden'}`}>
+                {/* <div className={`pt-4 pb-2 ${!isOpen && 'hidden'}`}>
                     <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Laporan</p>
-                </div>
+                </div> */}
                 {!isOpen && <div className="h-px bg-slate-800 my-2 mx-2"></div>}
 
                 <NavLink

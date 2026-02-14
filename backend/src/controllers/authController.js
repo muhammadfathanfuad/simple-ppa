@@ -57,7 +57,7 @@ const login = async (req, res) => {
 
 const getMe = async (req, res) => {
   try {
-    const adminId = req.user.id_admin;
+    const adminId = req.admin.id_admin;
     const admin = await prisma.admin.findUnique({
       where: { idAdmin: BigInt(adminId) },
       select: {
@@ -85,7 +85,7 @@ const getMe = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const adminId = req.user.id_admin;
+    const adminId = req.admin.id_admin;
     const { nama, email, password, passwordLama } = req.body;
     const fotoProfil = req.file ? `/uploads/profil/${req.file.filename}` : undefined;
 

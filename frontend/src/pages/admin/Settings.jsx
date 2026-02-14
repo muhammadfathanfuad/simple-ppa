@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import AdminManagement from './settings/AdminManagement';
 import ProfileSettings from './settings/ProfileSettings';
+import FormSettings from './settings/FormSettings';
+import ActivityLogs from './settings/ActivityLogs';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('profile'); // Default to profile

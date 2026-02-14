@@ -18,7 +18,7 @@ const AdminLayout = () => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     return (
-        <div className="flex min-h-screen bg-slate-100 font-sans">
+        <div className="flex h-screen overflow-hidden bg-slate-100 font-sans">
             <Sidebar isOpen={isSidebarOpen} />
             <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
                 <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 shadow-sm">

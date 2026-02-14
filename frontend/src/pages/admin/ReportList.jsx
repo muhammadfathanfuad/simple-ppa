@@ -11,11 +11,20 @@ const ReportList = () => {
     const [selectedReport, setSelectedReport] = useState(null);
     const [waPhoneNumber, setWaPhoneNumber] = useState('');
 
+    // Status Update Modal State
+    const [showStatusModal, setShowStatusModal] = useState(false);
+    const [statusData, setStatusData] = useState({
+        id: null,
+        currentStatus: '',
+        newStatus: '',
+        note: ''
+    });
+
     const fetchReports = async () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
-            if (filterStatus && filterStatus !== 'All') params.append('status', filterStatus);
+            if (filterStatus && filterStatus !== 'All') params.append('status', filterStatus.toLowerCase());
             if (searchQuery) params.append('q', searchQuery);
 
             const response = await fetch(`http://localhost:5000/api/laporan/all?${params.toString()}`, {
@@ -42,18 +51,34 @@ const ReportList = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [filterStatus, searchQuery]);
 
-    const handleUpdateStatus = async (id, newStatus) => {
+    const openStatusModal = (report) => {
+        setStatusData({
+            id: report.idLaporan,
+            currentStatus: toTitleCase(report.statusLaporan),
+            newStatus: toTitleCase(report.statusLaporan),
+            note: ''
+        });
+        setShowStatusModal(true);
+    };
+
+    const handleStatusSubmit = async () => {
+        if (!statusData.newStatus) return;
+
         try {
-            const response = await fetch(`http://localhost:5000/api/laporan/${id}/status`, {
+            const response = await fetch(`http://localhost:5000/api/laporan/${statusData.id}/status`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({
+                    status: statusData.newStatus.toLowerCase(),
+                    catatan: statusData.note
+                })
             });
 
             if (response.ok) {
+                setShowStatusModal(false);
                 fetchReports(); // Refresh data
             } else {
                 alert('Gagal memperbarui status');
@@ -94,9 +119,19 @@ const ReportList = () => {
         setSelectedReport(null);
     };
 
+    // Helper to format status display (Title Case)
+    const toTitleCase = (str) => {
+        if (!str) return '-';
+        return str.replace(/\w\S*/g, (txt) => {
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
+    };
+
     // Helper to get status badge color
     const getStatusColor = (status) => {
-        switch (status) {
+        if (!status) return 'bg-slate-100 text-slate-800 border-slate-200';
+        const normalizedStatus = toTitleCase(status);
+        switch (normalizedStatus) {
             case 'Menunggu': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
             case 'Diverifikasi': return 'bg-blue-100 text-blue-800 border-blue-200';
             case 'Diproses': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
@@ -153,6 +188,7 @@ const ReportList = () => {
                         <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
                             <tr>
                                 <th className="px-6 py-4 font-medium">No Tiket</th>
+                                <th className="px-6 py-4 font-medium">Tanggal</th>
                                 <th className="px-6 py-4 font-medium">Pelapor</th>
                                 <th className="px-6 py-4 font-medium">Korban</th>
                                 <th className="px-6 py-4 font-medium">Status</th>
@@ -196,31 +232,18 @@ const ReportList = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(report.statusLaporan)}`}>
-                                                {report.statusLaporan}
+                                                {toTitleCase(report.statusLaporan)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex justify-center items-center gap-2">
-                                                {/* Action Buttons based on Status */}
-                                                {report.statusLaporan === 'Menunggu' && (
-                                                    <button
-                                                        onClick={() => handleUpdateStatus(report.idLaporan, 'Diverifikasi')}
-                                                        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                                                        title="Verifikasi Laporan"
-                                                    >
-                                                        <i className="bi bi-check-circle text-lg"></i>
-                                                    </button>
-                                                )}
-
-                                                {report.statusLaporan === 'Diverifikasi' && (
-                                                    <button
-                                                        onClick={() => handleUpdateStatus(report.idLaporan, 'Diproses')}
-                                                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                                        title="Validasi / Proses Laporan"
-                                                    >
-                                                        <i className="bi bi-gear-fill text-lg"></i>
-                                                    </button>
-                                                )}
+                                                <button
+                                                    onClick={() => openStatusModal(report)}
+                                                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Update Status"
+                                                >
+                                                    <i className="bi bi-pencil-square text-lg"></i>
+                                                </button>
 
                                                 {/* WA Forward Button */}
                                                 <button
@@ -239,8 +262,12 @@ const ReportList = () => {
                                                     <i className="bi bi-file-earmark-text text-lg"></i>
                                                 </button>
 
-                                                {/* View Detail Link (Placeholder) */}
-                                                <button className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors" title="Lihat Detail">
+                                                {/* View Detail Link */}
+                                                <button
+                                                    onClick={() => navigate(`/admin/laporan/${report.idLaporan}/lengkap`)}
+                                                    className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
+                                                    title="Lihat Detail"
+                                                >
                                                     <i className="bi bi-eye text-lg"></i>
                                                 </button>
                                             </div>
@@ -263,6 +290,62 @@ const ReportList = () => {
                     <button className="px-3 py-1 border border-slate-200 rounded hover:bg-slate-50">Next</button>
                 </div>
             </div> */}
+
+            {/* Status Update Modal */}
+            {showStatusModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-bold text-slate-800">Update Status Laporan</h3>
+                            <button onClick={() => setShowStatusModal(false)} className="text-slate-400 hover:text-slate-600">
+                                <i className="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Status Baru</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
+                                    value={statusData.newStatus}
+                                    onChange={(e) => setStatusData({ ...statusData, newStatus: e.target.value })}
+                                >
+                                    <option value="Menunggu">Menunggu</option>
+                                    <option value="Diverifikasi">Diverifikasi</option>
+                                    <option value="Diproses">Diproses</option>
+                                    <option value="Selesai">Selesai</option>
+                                    <option value="Ditolak">Ditolak</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Catatan Perubahan (Opsional)</label>
+                                <textarea
+                                    className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-teal-500"
+                                    rows="3"
+                                    placeholder="Alasan perubahan status..."
+                                    value={statusData.note}
+                                    onChange={(e) => setStatusData({ ...statusData, note: e.target.value })}
+                                ></textarea>
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 justify-end mt-6">
+                            <button
+                                onClick={() => setShowStatusModal(false)}
+                                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={handleStatusSubmit}
+                                className="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                                Simpan Perubahan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* WhatsApp Modal */}
             {showWAModal && (
