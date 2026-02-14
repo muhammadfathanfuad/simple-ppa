@@ -110,11 +110,20 @@ simple-ppa/
 
 ## 🔐 Akun Default (Untuk Testing)
 **Admin Login:**
-- Username: `admin`
-- Password: `password123` (Atau cek di database table `users` jika sudah di-hashing)
+- Email: `admin@dp3a.kendari.go.id`
+- Password: `admin123` (Atau cek di database table `users` jika sudah di-hashing)
 
 ## 🤝 Kontribusi
 Silakan buat *Pull Request* jika Anda ingin berkontribusi pada pengembangan fitur baru atau perbaikan bug.
 
+## 👥 Team Developer
+
+| Nama | Peran | Tanggung Jawab Utama |
+| :--- | :--- | :--- |
+| **Degus Satya** | Project Manager & Frontend | Manajemen timeline & slicing UI/UX ke kode. |
+| **Muhammad Fathan** | Backend Developer | Perancangan database, API, dan integrasi sistem. |
+| **Syalsa Ananda** | UI/UX Designer | Riset pengguna, wireframing, dan desain high-fidelity. |
+| **Zaid Helsinki** | Quality Assurance (QA) | Testing fitur, dokumentasi bug, dan penyusunan panduan user. |
+
 ---
-Dibuat dengan ❤️ oleh Tim Pengembang.
+Dibuat dengan ❤️ oleh Tim Magang DP3A Kota Kendari 2026.
