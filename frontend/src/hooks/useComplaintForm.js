@@ -55,8 +55,7 @@ const useComplaintForm = (id) => {
 
         // Terlapor
         namaTerlapor: '',
-        tempatLahirTerlapor: '',
-        tanggalLahirTerlapor: '',
+        ttlTerlapor: '', // Combined Place, Date
         alamatTerlapor: '', // desa, kelurahan, kecamatan, kabupaten, kota, provinsi
         noTelpTerlapor: '',
         pendidikanTerlapor: '',
@@ -128,53 +127,72 @@ const useComplaintForm = (id) => {
             const data = await response.json();
 
             if (data) {
+                // Helper to format TTL for display (e.g., "Muna, 2023-01-01" or just "Muna")
+                const formatTTL = (tempat, tanggal) => {
+                    if (!tempat && !tanggal) return '';
+                    const datePart = tanggal ? tanggal.split('T')[0] : '';
+                    if (tempat && datePart) return `${tempat}, ${datePart}`;
+                    return tempat || datePart;
+                };
+
                 setFormData(prev => ({
                     ...prev,
+                    // ... existing fields ...
+
+                    // Laporan (General)
                     noRegistrasi: data.kodeLaporan || '',
-                    tanggal: data.dibuatPada ? data.dibuatPada.split('T')[0] : prev.tanggal,
+                    tanggal: data.dibuatPada ? data.dibuatPada.split('T')[0] : new Date().toISOString().split('T')[0],
                     namaKlien: data.namaKlien || '',
                     alamatKlien: data.alamatKlien || '',
                     penerimaPengaduan: data.penerimaPengaduan || '',
 
                     // Pelapor
                     namaPelapor: data.pelapor?.nama || '',
-                    jkPelapor: data.pelapor?.jenisKelamin || 'Laki-laki',
-                    ttlPelapor: data.pelapor?.tempatTanggalLahir || '',
-                    alamatPelapor: data.pelapor?.alamat || '',
+                    alamatPelapor: data.pelapor?.alamatLengkap || '',
                     noTelpPelapor: data.pelapor?.nomorWhatsapp || '',
                     pekerjaanPelapor: data.pelapor?.pekerjaan || '',
+                    pekerjaanPelaporLainnya: data.pelapor?.pekerjaanLainnya || '',
+                    agamaPelapor: data.pelapor?.agama || '',
+                    agamaPelaporLainnya: data.pelapor?.agamaLainnya || '',
                     hubunganKorban: data.pelapor?.hubunganDenganKorban || '',
+                    statusPelapor: data.pelapor?.statusPelapor || '',
+                    statusPelaporLainnya: data.pelapor?.statusPelaporLainnya || '',
+                    jkPelapor: 'Laki-laki', // Default as it's not in schema for Pelapor
+                    ttlPelapor: formatTTL(data.pelapor?.tempatLahir, data.pelapor?.tanggalLahir),
 
                     // Korban
                     namaKorban: data.korban?.namaLengkap || '',
                     nikKorban: data.korban?.nik || '',
                     kewarganegaraanKorban: data.korban?.kewarganegaraan || 'WNI',
                     jkKorban: data.korban?.jenisKelamin || 'Perempuan',
-                    ttlKorban: data.korban?.tempatTanggalLahir || '',
+                    ttlKorban: formatTTL(data.korban?.tempatLahir, data.korban?.tanggalLahir),
                     agamaKorban: data.korban?.agama || 'Islam',
+                    agamaKorbanLainnya: data.korban?.agamaLainnya || '',
                     alamatKorban: data.korban?.alamatLengkap || '',
-                    noTelpKorban: data.korban?.nomorTelepon || '',
+                    noTelpKorban: data.korban?.nomorWhatsapp || data.korban?.nomorTelepon || '',
                     pekerjaanKorban: data.korban?.pekerjaan || '',
+                    pekerjaanKorbanLainnya: data.korban?.pekerjaanLainnya || '',
                     pendidikanKorban: data.korban?.pendidikan || '',
+                    pendidikanKorbanLainnya: data.korban?.pendidikanLainnya || '',
                     statusPerkawinanKorban: data.korban?.statusPerkawinan || '',
                     jumlahAnakKorban: data.korban?.jumlahAnak || '',
 
+                    // Ortu / Wali
                     namaOrtuWali: data.korban?.namaOrtuWali || '',
                     alamatOrtuWali: data.korban?.alamatOrtuWali || '',
                     kewarganegaraanOrtuWali: data.korban?.kewarganegaraanOrtuWali || 'WNI',
                     pekerjaanAyah: data.korban?.pekerjaanAyah || '',
                     pekerjaanIbu: data.korban?.pekerjaanIbu || '',
 
+                    // Lainnya (Korban continued)
                     jumlahSaudaraKorban: data.korban?.jumlahSaudara || '',
                     hubunganTerlapor: data.korban?.hubunganDenganTerlapor || '',
-
                     disabilitasKorban: data.korban?.disabilitas || false,
                     jenisDisabilitasKorban: data.korban?.jenisDisabilitas || '',
 
                     // Terlapor
                     namaTerlapor: data.terlapor?.nama || '',
-                    tempatLahirTerlapor: data.terlapor?.tempatLahir || '',
-                    tanggalLahirTerlapor: data.terlapor?.tanggalLahir ? data.terlapor.tanggalLahir.split('T')[0] : '',
+                    ttlTerlapor: formatTTL(data.terlapor?.tempatLahir, data.terlapor?.tanggalLahir),
                     alamatTerlapor: data.terlapor?.alamat || '',
                     noTelpTerlapor: data.terlapor?.nomorTelepon || '',
                     pendidikanTerlapor: data.terlapor?.pendidikan || '',
@@ -189,10 +207,10 @@ const useComplaintForm = (id) => {
 
                     // Kasus
                     gambaranKasus: data.kronologiKejadian || '',
-                    kategoriKasus: data.jenisKasus?.idJenisKasus || '', // Store ID for select
-                    bentukKekerasan: data.bentukKekerasan?.idBentukKekerasan || '', // Store ID for select
+                    kategoriKasus: data.idJenisKasus || '',
+                    bentukKekerasan: data.idBentukKekerasan || '',
                     tanggalKejadian: data.tanggalKejadian ? data.tanggalKejadian.split('T')[0] : '',
-                    waktuKejadian: data.waktuKejadian ? data.waktuKejadian.split('T')[1].substring(0, 5) : '',
+                    waktuKejadian: data.waktuKejadian ? new Date(data.waktuKejadian).toTimeString().slice(0, 5) : '',
                     tempatKejadian: data.lokasiLengkapKejadian || '',
                     harapanKorban: data.harapanKorban || '',
                     layananDibutuhkan: data.layananDibutuhkan || '',
@@ -251,6 +269,7 @@ const useComplaintForm = (id) => {
 
         const pelaporTTL = parseTTL(formData.ttlPelapor);
         const korbanTTL = parseTTL(formData.ttlKorban);
+        const terlaporTTL = parseTTL(formData.ttlTerlapor);
 
         const payload = {
             pelapor: {
@@ -297,8 +316,8 @@ const useComplaintForm = (id) => {
             },
             terlapor: {
                 nama: formData.namaTerlapor,
-                tempatLahir: formData.tempatLahirTerlapor,
-                tanggalLahir: formData.tanggalLahirTerlapor,
+                tempatLahir: terlaporTTL.tempat,
+                tanggalLahir: terlaporTTL.tanggal,
                 alamat: formData.alamatTerlapor,
                 nomorTelepon: formData.noTelpTerlapor,
                 pendidikan: formData.pendidikanTerlapor,

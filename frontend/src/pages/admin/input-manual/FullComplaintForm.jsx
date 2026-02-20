@@ -84,6 +84,7 @@ const FullComplaintForm = () => {
                                             }}
                                             className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center gap-3 transition-colors"
                                         >
+                                            <i className="bi bi-file-earmark-check text-lg text-slate-400"></i>
                                             <span>Formulir Penerimaan</span>
                                         </button>
                                         <button

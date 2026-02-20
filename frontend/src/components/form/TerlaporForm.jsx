@@ -5,19 +5,15 @@ const TerlaporForm = ({ formData, handleChange }) => {
         <div className="border-t border-slate-100 pt-4">
             <h3 className="text-lg font-bold text-slate-800 mb-4">III. Identitas Terlapor</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="col-span-2 md:col-span-1">
+                <div className="md:col-span-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
                     <input type="text" name="namaTerlapor" value={formData.namaTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Tempat Lahir</label>
-                    <input type="text" name="tempatLahirTerlapor" value={formData.tempatLahirTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Tempat/Tgl Lahir</label>
+                    <input type="text" name="ttlTerlapor" value={formData.ttlTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Kendari, 01-01-1990" />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Tanggal Lahir</label>
-                    <input type="date" name="tanggalLahirTerlapor" value={formData.tanggalLahirTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
-                </div>
-                <div className="col-span-2">
+                <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Alamat (Desa, Kel, Kec, Kab, Kota, Prov)</label>
                     <textarea name="alamatTerlapor" value={formData.alamatTerlapor} onChange={handleChange} rows="2" className="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
                 </div>
@@ -67,7 +63,7 @@ const TerlaporForm = ({ formData, handleChange }) => {
                     <label className="block text-sm font-medium text-slate-700 mb-1">Nama Ortu/Wali</label>
                     <input type="text" name="namaOrtuWaliTerlapor" value={formData.namaOrtuWaliTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Alamat Ortu/Wali (Desa, Kel, Kec, Kab, Kota, Prov)</label>
                     <textarea name="alamatOrtuWaliTerlapor" value={formData.alamatOrtuWaliTerlapor} onChange={handleChange} rows="2" className="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
                 </div>
@@ -79,7 +75,7 @@ const TerlaporForm = ({ formData, handleChange }) => {
                     <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah Saudara</label>
                     <input type="number" name="jumlahSaudaraTerlapor" value={formData.jumlahSaudaraTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Hubungan dengan Korban</label>
                     <input type="text" name="hubunganKorbanTerlapor" value={formData.hubunganKorbanTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>

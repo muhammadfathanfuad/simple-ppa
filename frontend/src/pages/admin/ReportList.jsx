@@ -7,6 +7,8 @@ const ReportList = () => {
     const [loading, setLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('');
     const [searchQuery, setSearchQuery] = useState('');
+    const [startDate, setStartDate] = useState('');
+    const [endDate, setEndDate] = useState('');
     const [showWAModal, setShowWAModal] = useState(false);
     const [selectedReport, setSelectedReport] = useState(null);
     const [waPhoneNumber, setWaPhoneNumber] = useState('');
@@ -26,6 +28,8 @@ const ReportList = () => {
             const params = new URLSearchParams();
             if (filterStatus && filterStatus !== 'All') params.append('status', filterStatus.toLowerCase());
             if (searchQuery) params.append('q', searchQuery);
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
 
             const response = await fetch(`http://localhost:5000/api/laporan/all?${params.toString()}`, {
                 headers: {
@@ -49,7 +53,35 @@ const ReportList = () => {
         }, 500);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [filterStatus, searchQuery]);
+    }, [filterStatus, searchQuery, startDate, endDate]);
+
+    const handleExportExcel = async () => {
+        try {
+            const params = new URLSearchParams();
+            if (startDate) params.append('startDate', startDate);
+            if (endDate) params.append('endDate', endDate);
+
+            const response = await fetch(`http://localhost:5000/api/laporan/export-excel?${params.toString()}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Gagal export data');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Laporan_PPA_Excel.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } catch (error) {
+            console.error("Export Error:", error);
+            alert("Gagal mengunduh file Excel.");
+        }
+    };
 
     const openStatusModal = (report) => {
         setStatusData({
@@ -148,13 +180,16 @@ const ReportList = () => {
                     <h2 className="text-2xl font-bold text-slate-800">Daftar Laporan</h2>
                     <p className="text-slate-500 text-sm mt-1">Kelola dan tindak lanjuti laporan masuk</p>
                 </div>
-                {/* <button className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                    <i className="bi bi-download"></i> Export Data
-                </button> */}
+                <button
+                    onClick={handleExportExcel}
+                    className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                    <i className="bi bi-file-earmark-spreadsheet"></i> Export Excel
+                </button>
             </div>
 
             {/* Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col sm:flex-row gap-4">
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col xl:flex-row gap-4">
                 <div className="flex-1 relative">
                     <i className="bi bi-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     <input
@@ -165,24 +200,126 @@ const ReportList = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="w-full sm:w-48">
-                    <select
-                        className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 text-sm appearance-none bg-white"
-                        value={filterStatus}
-                        onChange={(e) => setFilterStatus(e.target.value)}
-                    >
-                        <option value="">Semua Status</option>
-                        <option value="Menunggu">Menunggu</option>
-                        <option value="Diverifikasi">Diverifikasi</option>
-                        <option value="Diproses">Diproses</option>
-                        <option value="Selesai">Selesai</option>
-                        <option value="Ditolak">Ditolak</option>
-                    </select>
+
+                <div className="flex gap-4 flex-col md:flex-row w-full xl:w-auto">
+                    <div className="w-full md:w-40">
+                        <input
+                            type="date"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 text-sm text-slate-600"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            placeholder="Dari Tanggal"
+                        />
+                    </div>
+                    <div className="w-full md:w-40">
+                        <input
+                            type="date"
+                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 text-sm text-slate-600"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            placeholder="Sampai Tanggal"
+                        />
+                    </div>
+                    <div className="w-full md:w-48">
+                        <select
+                            className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-teal-500 text-sm appearance-none bg-white"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="">Semua Status</option>
+                            <option value="Menunggu">Menunggu</option>
+                            <option value="Diverifikasi">Diverifikasi</option>
+                            <option value="Diproses">Diproses</option>
+                            <option value="Selesai">Selesai</option>
+                            <option value="Ditolak">Ditolak</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            {/* Mobile Card View (Visible on Mobile Only) */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+                {loading ? (
+                    <div className="text-center py-8 text-slate-500">
+                        <div className="flex justify-center items-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-500"></div>
+                            Memuat data...
+                        </div>
+                    </div>
+                ) : reports.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 bg-white rounded-xl border border-slate-200">
+                        Tidak ada laporan ditemukan.
+                    </div>
+                ) : (
+                    reports.map((report) => (
+                        <div key={report.idLaporan} className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 space-y-3">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <span className="text-xs font-semibold text-teal-600 bg-teal-50 px-2 py-1 rounded-md">
+                                        #{report.kodeLaporan}
+                                    </span>
+                                    <p className="text-xs text-slate-500 mt-1">
+                                        {new Date(report.dibuatPada).toLocaleDateString('id-ID', {
+                                            day: 'numeric', month: 'short', year: 'numeric'
+                                        })}
+                                    </p>
+                                </div>
+                                <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(report.statusLaporan)}`}>
+                                    {toTitleCase(report.statusLaporan)}
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div>
+                                    <p className="text-xs text-slate-500">Pelapor</p>
+                                    <p className="font-medium text-slate-800 truncate">{report.pelapor?.nama || 'Anonim'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500">Korban</p>
+                                    <p className="font-medium text-slate-800 truncate">{report.korban?.namaLengkap || 'N/A'}</p>
+                                </div>
+                            </div>
+
+                            <div className="flex justify-end items-center gap-2 pt-2 border-t border-slate-100">
+                                <button
+                                    onClick={() => openStatusModal(report)}
+                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-slate-200"
+                                    title="Update Status"
+                                >
+                                    <i className="bi bi-pencil-square"></i>
+                                </button>
+
+                                <button
+                                    onClick={() => handleOpenWAModal(report)}
+                                    className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-slate-200"
+                                    title="Teruskan ke WhatsApp"
+                                >
+                                    <i className="bi bi-whatsapp"></i>
+                                </button>
+
+                                <button
+                                    onClick={() => navigate(`/admin/laporan/${report.idLaporan}/lengkap`)}
+                                    className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors border border-slate-200"
+                                    title="Lengkapi Formulir"
+                                >
+                                    <i className="bi bi-file-earmark-text"></i>
+                                </button>
+
+                                <button
+                                    onClick={() => navigate(`/admin/laporan/${report.idLaporan}/lengkap`)}
+                                    className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
+                                    title="Lihat Detail"
+                                >
+                                    <i className="bi bi-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {/* Desktop Table View (Hidden on Mobile) */}
+            <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">

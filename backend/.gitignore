@@ -9,3 +9,6 @@ uploads/
 backend_error.log
 debug_check_reports.js
 debug_report.js
+debug_timeline_logic.js
+read_excel_structure.py
+

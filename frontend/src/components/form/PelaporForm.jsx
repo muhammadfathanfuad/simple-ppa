@@ -5,7 +5,7 @@ const PelaporForm = ({ formData, handleChange }) => {
         <div className="border-t border-slate-100 pt-4">
             <h3 className="text-lg font-bold text-slate-800 mb-4">I. Identitas Pelapor</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="col-span-2 md:col-span-1">
+                <div className="md:col-span-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
                     <input type="text" name="namaPelapor" value={formData.namaPelapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>
@@ -24,7 +24,7 @@ const PelaporForm = ({ formData, handleChange }) => {
                     <label className="block text-sm font-medium text-slate-700 mb-1">No. Telepon</label>
                     <input type="text" name="noTelpPelapor" value={formData.noTelpPelapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>
-                <div className="col-span-2">
+                <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Alamat Lengkap</label>
                     <textarea name="alamatPelapor" value={formData.alamatPelapor} onChange={handleChange} rows="2" className="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
                 </div>

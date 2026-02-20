@@ -18,7 +18,8 @@ router.get('/detail/:id', verifyToken, laporanController.getLaporanDetail);
 router.get('/stats', verifyToken, laporanController.getStatistik);    // Feature: Dashboard Stats
 router.put('/:id/status', verifyToken, laporanController.updateStatus); // Feature: Status Update
 router.get('/gis', verifyToken, laporanController.getLokasiKasus);      // Feature: GIS
-router.get('/export', verifyToken, laporanController.exportLaporan);    // Feature: Export
+router.get('/export', verifyToken, laporanController.exportLaporan);    // Feature: Export CSV
+router.get('/export-excel', verifyToken, laporanController.exportExcel); // Feature: Export Excel
 router.put('/update/:id', verifyToken, laporanController.updateLaporan); // Feature: Update Full Report
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const prisma = require("../lib/prisma");
 const fs = require("fs");
+const ExcelJS = require('exceljs');
 const generateTicket = require("../utils/generateTicket");
 
 const getAllLaporan = async (req, res) => {
@@ -117,7 +118,7 @@ const buatLaporan = async (req, res) => {
                   namaLengkap: korban.namaKorban,
                   nik: korban.nikKorban,
                   alamatLengkap: korban.alamatKorban,
-                  jenisKelamin: korban.jenisKelamin,
+                  jenisKelamin: korban.jenisKelamin === 'Laki-laki' ? 'Laki_laki' : korban.jenisKelamin,
                   tanggalLahir: korban.tanggalLahir ? new Date(korban.tanggalLahir) : null,
                   nomorTelepon: korban.nomorTelepon,
                   jumlahAnak: korban.jumlahAnak ? parseInt(korban.jumlahAnak) : null,
@@ -130,7 +131,7 @@ const buatLaporan = async (req, res) => {
                   hubunganDenganTerlapor: korban.hubunganDenganTerlapor,
                 }
               },
-              terlapor: {
+              terlapor: terlapor && terlapor.nama ? {
                 create: {
                   nama: terlapor.nama,
                   tempatLahir: terlapor.tempatLahir,
@@ -147,7 +148,7 @@ const buatLaporan = async (req, res) => {
                   jumlahSaudara: terlapor.jumlahSaudara ? parseInt(terlapor.jumlahSaudara) : null,
                   hubunganDenganKorban: terlapor.hubunganDenganKorban,
                 }
-              },
+              } : undefined,
               trafficking: trafficking && trafficking.isTrafficking ? {
                 create: {
                   ruteTrafficking: trafficking.ruteTrafficking,
@@ -674,6 +675,178 @@ const updateLaporan = async (req, res) => {
   }
 };
 
+const exportExcel = async (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  try {
+    const whereClause = {};
+
+    if (startDate && endDate) {
+      whereClause.dibuatPada = {
+        gte: new Date(startDate),
+        lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+      };
+    } else if (startDate) {
+      whereClause.dibuatPada = {
+        gte: new Date(startDate)
+      };
+    }
+
+    const laporan = await prisma.laporan.findMany({
+      where: whereClause,
+      include: {
+        pelapor: true,
+        korban: true,
+        terlapor: true,
+        jenisKasus: true,
+        bentukKekerasan: true,
+        kecamatan: true,
+        buktiLaporan: true
+      },
+      orderBy: { dibuatPada: 'desc' }
+    });
+
+    const workbook = new ExcelJS.Workbook();
+
+    // --- SHEET 1: REKAP KESELURUHAN ---
+    const sheet1 = workbook.addWorksheet('Rekap Keseluruhan');
+
+    // Define columns manually to ensure order and completeness
+    sheet1.columns = [
+      { header: 'No Tiket', key: 'kodeLaporan', width: 15 },
+      { header: 'Status', key: 'statusLaporan', width: 15 },
+      { header: 'Tanggal Lapor', key: 'tanggal', width: 15 },
+      { header: 'Kecamatan', key: 'kecamatan', width: 20 },
+      { header: 'Jenis Kasus', key: 'jenisKasus', width: 20 },
+      { header: 'Bentuk Kekerasan', key: 'bentukKekerasan', width: 20 },
+      // Pelapor
+      { header: 'Nama Pelapor', key: 'namaPelapor', width: 20 },
+      { header: 'Telp Pelapor', key: 'telpPelapor', width: 15 },
+      { header: 'Hubungan', key: 'hubunganPelapor', width: 15 },
+      // Korban
+      { header: 'Nama Korban', key: 'namaKorban', width: 20 },
+      { header: 'NIK Korban', key: 'nikKorban', width: 20 },
+      { header: 'JK Korban', key: 'jkKorban', width: 10 },
+      { header: 'Usia/TTL', key: 'ttlKorban', width: 20 },
+      { header: 'Alamat Korban', key: 'alamatKorban', width: 30 },
+      { header: 'Pendidikan', key: 'pendidikanKorban', width: 15 },
+      { header: 'Pekerjaan', key: 'pekerjaanKorban', width: 15 },
+      // Terlapor
+      { header: 'Nama Terlapor', key: 'namaTerlapor', width: 20 },
+      { header: 'Hubungan dgn Korban', key: 'hubunganTerlapor', width: 20 },
+      // Kasus
+      { header: 'Tanggal Kejadian', key: 'tglKejadian', width: 15 },
+      { header: 'Lokasi Kejadian', key: 'lokasiKejadian', width: 30 },
+      { header: 'Kronologi', key: 'kronologi', width: 40 },
+      { header: 'Link Bukti', key: 'linkBukti', width: 40 },
+    ];
+
+    laporan.forEach(l => {
+      const buktiLinks = l.buktiLaporan.map(b => `http://localhost:5000/${b.lokasiFile}`).join(', ');
+
+      sheet1.addRow({
+        kodeLaporan: l.kodeLaporan,
+        statusLaporan: l.statusLaporan,
+        tanggal: l.dibuatPada ? new Date(l.dibuatPada).toISOString().split('T')[0] : '-',
+        kecamatan: l.kecamatan?.namaKecamatan || '-',
+        jenisKasus: l.jenisKasus?.namaJenisKasus || '-',
+        bentukKekerasan: l.bentukKekerasan?.namaBentukKekerasan || '-',
+        // Pelapor
+        namaPelapor: l.pelapor?.nama || '-',
+        telpPelapor: l.pelapor?.nomorWhatsapp || '-',
+        hubunganPelapor: l.pelapor?.hubunganDenganKorban || '-',
+        // Korban
+        namaKorban: l.korban?.namaLengkap || '-',
+        nikKorban: l.korban?.nik || '-',
+        jkKorban: l.korban?.jenisKelamin || '-',
+        ttlKorban: `${l.korban?.tempatLahir || ''}, ${l.korban?.tanggalLahir ? new Date(l.korban.tanggalLahir).toISOString().split('T')[0] : ''}`,
+        alamatKorban: l.korban?.alamatLengkap || '-',
+        pendidikanKorban: l.korban?.pendidikan || '-',
+        pekerjaanKorban: l.korban?.pekerjaan || '-',
+        // Terlapor
+        namaTerlapor: l.terlapor?.nama || '-',
+        hubunganTerlapor: l.terlapor?.hubunganDenganKorban || '-',
+        // Kasus
+        tglKejadian: l.tanggalKejadian ? new Date(l.tanggalKejadian).toISOString().split('T')[0] : '-',
+        lokasiKejadian: l.lokasiLengkapKejadian,
+        kronologi: l.kronologiKejadian,
+        linkBukti: buktiLinks
+      });
+    });
+
+    // --- SHEET 2: REKAP KASUS ---
+    const sheet2 = workbook.addWorksheet('Rekap Kasus');
+    sheet2.columns = [
+      { header: 'No', key: 'no', width: 5 },
+      { header: 'Bulan', key: 'bulan', width: 15 },
+      { header: 'Nama Korban', key: 'namaKorban', width: 25 },
+      { header: 'Jenis Kasus', key: 'jenisKasus', width: 20 },
+      { header: 'Bentuk Kekerasan', key: 'bentukKekerasan', width: 20 },
+      { header: 'Kecamatan', key: 'kecamatan', width: 20 },
+    ];
+
+    laporan.forEach((l, index) => {
+      const date = l.dibuatPada ? new Date(l.dibuatPada) : new Date();
+      const bulan = date.toLocaleString('id-ID', { month: 'long', year: 'numeric' });
+
+      sheet2.addRow({
+        no: index + 1,
+        bulan: bulan,
+        namaKorban: l.korban?.namaLengkap || '-',
+        jenisKasus: l.jenisKasus?.namaJenisKasus || '-',
+        bentukKekerasan: l.bentukKekerasan?.namaBentukKekerasan || '-',
+        kecamatan: l.kecamatan?.namaKecamatan || '-'
+      });
+    });
+
+    // --- SHEET 3: REKAP DEMOGRAFI USIA ---
+    const sheet3 = workbook.addWorksheet('Rekap Demografi Usia');
+    sheet3.columns = [
+      { header: 'No', key: 'no', width: 5 },
+      { header: 'Nama Korban', key: 'namaKorban', width: 25 },
+      { header: 'Tanggal Lahir', key: 'tglLahir', width: 15 },
+      { header: 'Usia (Tahun)', key: 'usia', width: 10 },
+      { header: 'Kelompok Usia', key: 'kelompokUsia', width: 15 },
+    ];
+
+    laporan.forEach((l, index) => {
+      let usia = '-';
+      let kelompokUsia = '-';
+
+      if (l.korban?.tanggalLahir) {
+        const birthDate = new Date(l.korban.tanggalLahir);
+        const reportDate = new Date(l.dibuatPada);
+        let age = reportDate.getFullYear() - birthDate.getFullYear();
+        const m = reportDate.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && reportDate.getDate() < birthDate.getDate())) {
+          age--;
+        }
+        usia = age;
+        kelompokUsia = age < 18 ? 'Anak' : 'Dewasa';
+      }
+
+      sheet3.addRow({
+        no: index + 1,
+        namaKorban: l.korban?.namaLengkap || '-',
+        tglLahir: l.korban?.tanggalLahir ? new Date(l.korban.tanggalLahir).toISOString().split('T')[0] : '-',
+        usia: usia,
+        kelompokUsia: kelompokUsia
+      });
+    });
+
+    // Response
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="Laporan_PPA_Excel.xlsx"');
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error("Export Excel Error:", error);
+    res.status(500).json({ message: "Gagal export data excel." });
+  }
+};
+
 module.exports = {
   buatLaporan,
   cekStatusLaporan,
@@ -682,6 +855,7 @@ module.exports = {
   updateStatus,
   getLokasiKasus,
   exportLaporan,
+  exportExcel,
   getLaporanDetail,
   updateLaporan
 };

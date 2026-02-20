@@ -3,9 +3,23 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 
 const AdminLayout = () => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const navigate = useNavigate();
+
+    // Close sidebar on route change on mobile
+    React.useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 768) {
+                setIsSidebarOpen(true);
+            } else {
+                setIsSidebarOpen(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const handleLogout = () => {
         if (window.confirm('Apakah Anda yakin ingin keluar?')) {
@@ -15,21 +29,34 @@ const AdminLayout = () => {
         }
     };
 
+    const toggleSidebar = () => {
+        setIsSidebarOpen(!isSidebarOpen);
+    }
+
     const user = JSON.parse(localStorage.getItem('user') || '{}');
 
     return (
-        <div className="flex h-screen overflow-hidden bg-slate-100 font-sans">
-            <Sidebar isOpen={isSidebarOpen} />
-            <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300">
-                <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 shadow-sm">
+        <div className="flex h-screen overflow-hidden bg-slate-100 font-sans relative">
+            {/* Mobile Sidebar Overlay */}
+            {isSidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/50 z-30 md:hidden transition-opacity"
+                    onClick={() => setIsSidebarOpen(false)}
+                ></div>
+            )}
+
+            <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+
+            <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300 w-full">
+                <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 shadow-sm sticky top-0 z-20">
                     <div className="flex items-center gap-4">
                         <button
-                            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            onClick={toggleSidebar}
                             className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors focus:outline-none"
                         >
-                            <i className={`bi ${isSidebarOpen ? 'bi-text-indent-right' : 'bi-text-indent-left'} text-xl`}></i>
+                            <i className="bi bi-list text-xl"></i>
                         </button>
-                        <h1 className="text-lg font-semibold text-slate-700">Dashboard Overview</h1>
+                        <h1 className="text-lg font-semibold text-slate-700 truncate">Dashboard Overview</h1>
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="relative">
@@ -78,7 +105,7 @@ const AdminLayout = () => {
                         </div>
                     </div>
                 </header>
-                <main className="flex-1 overflow-auto p-8">
+                <main className="flex-1 overflow-auto p-4 md:p-8 w-full relative">
                     <Outlet />
                 </main>
             </div>
