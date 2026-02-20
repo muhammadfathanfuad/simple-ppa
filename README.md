@@ -3,19 +3,33 @@
 Sistem Pelaporan Kekerasan Perempuan dan Anak (Simple PPA) adalah aplikasi web yang dirancang untuk memudahkan masyarakat melaporkan kasus kekerasan. Sistem ini dilengkapi dengan dashboard admin untuk memantau dan memproses laporan yang masuk.
 
 ## 🚀 Fitur Utama
-- **Pelaporan Online**: Formulir pengaduan yang mudah digunakan untuk korban atau saksi.
-- **Tracking Tiket**: Pelapor dapat memantau status laporan menggunakan nomor tiket.
-- **Dashboard Admin**: Visualisasi data laporan, peta sebaran kasus, dan manajemen status laporan.
-- **Keamanan Privasi**: Identitas pelapor dan korban dijaga kerahasiaannya.
-- **Geolokasi**: Integrasi peta untuk titik lokasi kejadian.
-- **Cetak Laporan**: Fitur cetak bukti lapor dan surat permohonan ke PDF.
+- **Sistem Pelaporan Multi-Kategori**: Formulir pengaduan responsif yang mendukung klasifikasi jenis kasus, bentuk kekerasan, hingga data spesifik *human trafficking*.
+- **Pelacakan Laporan Real-Time**: Pelapor dapat memantau progres penanganan laporan secara transparan melalui nomor tiket unik.
+- **Manajemen Dashboard Admin**: Visualisasi statistik kasus menggunakan grafik interaktif dan manajemen status laporan yang dilengkapi dengan riwayat perubahan (*log status*).
+- **Pemetaan Kasus (Geospasial)**: Integrasi peta digital untuk menentukan dan memvisualisasikan titik lokasi kejadian secara akurat.
+- **Keamanan Data & Privasi**: Perlindungan data sensitif dengan enkripsi password (Bcrypt) dan opsi anonimitas bagi pelapor untuk menjamin keamanan identitas.
+- **Generasi Dokumen PDF**: Fitur otomatisasi untuk mencetak bukti lapor dan dokumen permohonan layanan ke format PDF yang profesional.
+- **Manajemen Admin & Log Aktivitas**: Kendali akses penuh untuk pengelola aplikasi, termasuk pengaturan profil dan pemantauan aktivitas admin.
 
 ## 🛠 Teknologi yang Digunakan
-- **Frontend**: React + Vite, Tailwind CSS, Leaflet (Peta)
-- **Backend**: Express.js, Prisma ORM
-- **Database**: MySQL
-- **Containerization**: Docker & Docker Compose
 
+### **Frontend**
+- **Library Utama**: React 19 + Vite
+- **Styling**: Tailwind CSS & Bootstrap 5
+- **State Management & Routing**: React Router 7
+- **Peta & Visualisasi**: Leaflet (Geospatial) & Chart.js (Statistik)
+- **Reporting**: jsPDF & jspdf-autotable 
+
+### **Backend**
+- **Framework**: Express.js
+- **ORM**: Prisma
+- **Autentikasi**: JSON Web Token (JWT) & Bcrypt
+- **File Upload**: Multer
+
+### **Database & Tools**
+- **Database**: MySQL 8.0
+- **Database Management**: phpMyAdmin
+- **Containerization**: Docker & Docker Compose
 ---
 
 ## 📦 Panduan Instalasi & Menjalankan Project
@@ -110,11 +124,20 @@ simple-ppa/
 
 ## 🔐 Akun Default (Untuk Testing)
 **Admin Login:**
-- Username: `admin`
-- Password: `password123` (Atau cek di database table `users` jika sudah di-hashing)
+- Email: `admin@dp3a.kendari.go.id`
+- Password: `admin123` (Atau cek di database table `users` jika sudah di-hashing)
 
 ## 🤝 Kontribusi
 Silakan buat *Pull Request* jika Anda ingin berkontribusi pada pengembangan fitur baru atau perbaikan bug.
 
+## 👥 Team Developer
+
+| Nama | Peran | Tanggung Jawab Utama |
+| :--- | :--- | :--- |
+| **Degus Satya** | Project Manager & Frontend | Manajemen timeline & slicing UI/UX ke kode. |
+| **Muhammad Fathan** | Backend Developer | Perancangan database, API, dan integrasi sistem. |
+| **Syalsa Ananda** | UI/UX Designer | Riset pengguna, wireframing, dan desain high-fidelity. |
+| **Zaid Helsinki** | Quality Assurance (QA) | Testing fitur, dokumentasi bug, dan penyusunan panduan user. |
+
 ---
-Dibuat dengan ❤️ oleh Tim Pengembang.
+Dibuat dengan ❤️ oleh Tim Magang DP3A Kota Kendari 2026.
