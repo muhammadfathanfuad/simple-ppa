@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 
 const AdminManagement = () => {
     const [admins, setAdmins] = useState([]);
@@ -55,24 +56,45 @@ const AdminManagement = () => {
                 setShowModal(false);
                 setFormData({ nama: '', email: '', password: '' });
                 setEditId(null);
+                Swal.fire('Berhasil!', 'Data admin berhasil disimpan', 'success');
             } else {
-                alert('Gagal menyimpan data');
+                const errData = await response.json();
+                Swal.fire('Gagal', errData.message || 'Gagal menyimpan data', 'error');
             }
         } catch (error) {
             console.error("Error saving admin:", error);
+            Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
         }
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Yakin ingin menghapus admin ini?')) return;
+        const result = await Swal.fire({
+            title: 'Yakin ingin menghapus admin ini?',
+            text: "Tindakan ini tidak dapat dibatalkan!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
-            await fetch(`http://localhost:5000/api/admin/users/${id}`, {
+            const response = await fetch(`http://localhost:5000/api/admin/users/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
-            fetchAdmins();
+            if (response.ok) {
+                Swal.fire('Terhapus!', 'Admin berhasil dihapus.', 'success');
+                fetchAdmins();
+            } else {
+                Swal.fire('Gagal', 'Gagal menghapus admin', 'error');
+            }
         } catch (error) {
             console.error("Error deleting admin:", error);
+            Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
         }
     };
 

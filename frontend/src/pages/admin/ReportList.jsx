@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const ReportList = () => {
     const navigate = useNavigate();
@@ -79,7 +80,7 @@ const ReportList = () => {
             a.remove();
         } catch (error) {
             console.error("Export Error:", error);
-            alert("Gagal mengunduh file Excel.");
+            Swal.fire('Gagal', 'Gagal mengunduh file Excel.', 'error');
         }
     };
 
@@ -112,12 +113,13 @@ const ReportList = () => {
             if (response.ok) {
                 setShowStatusModal(false);
                 fetchReports(); // Refresh data
+                Swal.fire('Berhasil!', 'Status laporan berhasil diperbarui', 'success');
             } else {
-                alert('Gagal memperbarui status');
+                Swal.fire('Gagal', 'Gagal memperbarui status', 'error');
             }
         } catch (error) {
             console.error("Error updating status:", error);
-            alert('Terjadi kesalahan saat memperbarui status');
+            Swal.fire('Error', 'Terjadi kesalahan saat memperbarui status', 'error');
         }
     };
 

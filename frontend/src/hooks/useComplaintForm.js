@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const useComplaintForm = (id) => {
     const navigate = useNavigate();
@@ -375,16 +376,32 @@ const useComplaintForm = (id) => {
             });
 
             if (response.ok) {
-                alert('Laporan berhasil disimpan!');
-                navigate('/admin/laporan');
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: 'Laporan berhasil disimpan!',
+                    icon: 'success',
+                    confirmButtonColor: '#0d9488'
+                }).then(() => {
+                    navigate('/admin/laporan');
+                });
             } else {
                 const errorData = await response.json();
-                alert(`Gagal menyimpan laporan: ${errorData.message}`);
+                Swal.fire({
+                    title: 'Gagal',
+                    text: `Gagal menyimpan laporan: ${errorData.message}`,
+                    icon: 'error',
+                    confirmButtonColor: '#0d9488'
+                });
                 console.error("Server Error Details:", errorData);
             }
         } catch (error) {
             console.error(error);
-            alert('Terjadi kesalahan saat menyimpan laporan.');
+            Swal.fire({
+                title: 'Error',
+                text: 'Terjadi kesalahan saat menyimpan laporan.',
+                icon: 'error',
+                confirmButtonColor: '#0d9488'
+            });
         } finally {
             setLoading(false);
         }

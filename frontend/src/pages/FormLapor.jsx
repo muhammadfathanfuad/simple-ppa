@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { findKecamatanByLocation, findNearestKecamatan } from '../utils/geometry';
+import Swal from 'sweetalert2';
 
 const FormLapor = () => {
     const navigate = useNavigate();
@@ -168,19 +169,19 @@ const FormLapor = () => {
 
                 if (foundKecamatan) {
                     if (isNearest) {
-                        alert(`Lokasi Anda terdeteksi di dekat Kecamatan ${foundKecamatan.namaKecamatan}. Sistem telah memilihnya untuk Anda.`);
+                        Swal.fire('Info Lokasi', `Lokasi Anda terdeteksi di dekat Kecamatan ${foundKecamatan.namaKecamatan}. Sistem telah memilihnya untuk Anda.`, 'info');
                     } else {
-                        alert(`Lokasi terdeteksi di Kecamatan ${foundKecamatan.namaKecamatan}`);
+                        Swal.fire('Info Lokasi', `Lokasi terdeteksi di Kecamatan ${foundKecamatan.namaKecamatan}`, 'success');
                     }
                 } else {
-                    alert(`Lokasi Anda (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) berada di luar wilayah deteksi otomatis database. Silakan pilih Kecamatan secara manual.`);
+                    Swal.fire('Info Lokasi', `Lokasi Anda (${latitude.toFixed(5)}, ${longitude.toFixed(5)}) berada di luar wilayah deteksi otomatis database. Silakan pilih Kecamatan secara manual.`, 'warning');
                 }
 
             }, () => {
-                alert('Gagal mengambil lokasi. Pastikan GPS aktif dan izin diberikan.');
+                Swal.fire('Gagal', 'Gagal mengambil lokasi. Pastikan GPS aktif dan izin diberikan.', 'error');
             });
         } else {
-            alert('Browser tidak mendukung Geolocation.');
+            Swal.fire('Error', 'Browser tidak mendukung Geolocation.', 'error');
         }
     }, [kecamatanList]);
 
@@ -234,17 +235,17 @@ const FormLapor = () => {
 
         // Validation
         if (!payload.laporan.idJenisKasus) {
-            alert("Harap pilih jenis kekerasan.");
+            Swal.fire('Peringatan', 'Harap pilih jenis kekerasan.', 'warning');
             setLoading(false);
             return;
         }
         if (!payload.laporan.idKecamatan) {
-            alert("Harap pilih kecamatan.");
+            Swal.fire('Peringatan', 'Harap pilih kecamatan.', 'warning');
             setLoading(false);
             return;
         }
         if (!payload.laporan.kronologiKejadian) {
-            alert("Harap isi kronologi kejadian.");
+            Swal.fire('Peringatan', 'Harap isi kronologi kejadian.', 'warning');
             setLoading(false);
             return;
         }
@@ -269,11 +270,11 @@ const FormLapor = () => {
                 setTicket(result.nomor_tiket);
                 setStep(4);
             } else {
-                alert(result.message || 'Gagal mengirim laporan');
+                Swal.fire('Gagal', result.message || 'Gagal mengirim laporan', 'error');
             }
         } catch (error) {
             console.error("Error submit:", error);
-            alert("Terjadi kesalahan koneksi");
+            Swal.fire('Error', 'Terjadi kesalahan koneksi', 'error');
         } finally {
             setLoading(false);
         }

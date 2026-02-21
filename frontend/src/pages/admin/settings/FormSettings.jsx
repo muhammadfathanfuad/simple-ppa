@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Swal from 'sweetalert2';
 
 const MasterTable = ({ title, endpoint, columns, onCreate, onUpdate, onDelete }) => {
     const [data, setData] = useState([]);
@@ -49,29 +50,46 @@ const MasterTable = ({ title, endpoint, columns, onCreate, onUpdate, onDelete })
                 setShowModal(false);
                 setFormData({});
                 setEditId(null);
+                Swal.fire('Berhasil!', 'Data berhasil disimpan', 'success');
             } else {
                 const err = await res.json();
-                alert(err.message || 'Gagal menyimpan data');
+                Swal.fire('Gagal', err.message || 'Gagal menyimpan data', 'error');
             }
         } catch (error) {
             console.error("Error saving:", error);
+            Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
         }
     };
 
     const handleDeleteClick = async (id) => {
-        if (!window.confirm('Hapus data ini?')) return;
+        const result = await Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: 'Hapus data ini?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        });
+
+        if (!result.isConfirmed) return;
+
         try {
             const res = await fetch(`http://localhost:5000/api/admin/master/${endpoint}/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
-            if (res.ok) fetchData();
-            else {
+            if (res.ok) {
+                Swal.fire('Terhapus!', 'Data berhasil dihapus.', 'success');
+                fetchData();
+            } else {
                 const err = await res.json();
-                alert(err.message || 'Gagal menghapus');
+                Swal.fire('Gagal', err.message || 'Gagal menghapus', 'error');
             }
         } catch (error) {
             console.error("Error deleting:", error);
+            Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
         }
     };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const Formulir = () => {
   const [step, setStep] = useState(1);
@@ -12,9 +13,15 @@ const Formulir = () => {
 
   const handleFinalSubmit = () => {
     // Logika pengiriman data ke backend bisa diletakkan di sini
-    alert("Laporan Berhasil Dikirim ke DP3A Kendari!");
-    navigate('/'); // Kembali ke Beranda
-    window.scrollTo(0, 0);
+    Swal.fire({
+      title: 'Berhasil!',
+      text: 'Laporan Berhasil Dikirim ke DP3A Kendari!',
+      icon: 'success',
+      confirmButtonColor: '#09637e'
+    }).then(() => {
+      navigate('/'); // Kembali ke Beranda
+      window.scrollTo(0, 0);
+    });
   };
 
   // Helper untuk merender grup radio agar seragam & ringkas
@@ -49,7 +56,7 @@ const Formulir = () => {
       </div>
 
       <div className="form-container col-lg-10 mx-auto shadow-lg">
-        
+
         {/* --- STEP 1: IDENTITAS (KORBAN & PELAPOR) --- */}
         {step === 1 && (
           <div className="step-content">
@@ -80,7 +87,7 @@ const Formulir = () => {
               <h2 className="form-section-title mb-0">Identitas Pelapor</h2>
               <div className="form-check form-switch">
                 <input className="form-check-input" type="checkbox" id="anonim" />
-                <label className="form-check-label text-white ms-2" htmlFor="anonim" style={{fontSize: '18px'}}>Anonimkan Identitas?</label>
+                <label className="form-check-label text-white ms-2" htmlFor="anonim" style={{ fontSize: '18px' }}>Anonimkan Identitas?</label>
               </div>
             </div>
 
@@ -103,9 +110,9 @@ const Formulir = () => {
               {renderRadioGroup("Agama Pelapor", "agama_pelapor", ['Islam', 'Katolik', 'Budha', 'Kristen', 'Hindu', 'Konghuchu'], true, "col-12")}
 
               <div className="col-12 text-end mt-5">
-                <button className="btn btn-light px-5 py-3 rounded-pill fw-bold" 
-                        style={{ fontSize: '24px', color: '#09637e' }}
-                        onClick={() => setStep(2)}>
+                <button className="btn btn-light px-5 py-3 rounded-pill fw-bold"
+                  style={{ fontSize: '24px', color: '#09637e' }}
+                  onClick={() => setStep(2)}>
                   Berikutnya <i className="bi bi-play-fill ms-2"></i>
                 </button>
               </div>
@@ -120,7 +127,7 @@ const Formulir = () => {
             <div className="row g-4">
               {renderRadioGroup("Jenis Kasus Kekerasan", "jenis_kasus", ['KDRT', 'Anak', 'ABH', 'Perempuan', 'TPPO'], true, "col-12")}
               {renderRadioGroup("Bentuk Kekerasan", "bentuk_kekerasan", ['Fisik', 'Psikis', 'Seksual', 'Penelantaran Rumah Tangga'], true, "col-12")}
-              
+
               <div className="col-md-6">
                 <label className="form-label">Tanggal & Waktu Kejadian</label>
                 <input type="datetime-local" className="form-control-custom" />
@@ -148,11 +155,11 @@ const Formulir = () => {
 
               <div className="col-12 d-flex justify-content-between mt-5">
                 <button className="btn btn-outline-light px-5 py-3 rounded-pill fw-bold"
-                        style={{ fontSize: '24px' }} onClick={() => setStep(1)}>
+                  style={{ fontSize: '24px' }} onClick={() => setStep(1)}>
                   <i className="bi bi-arrow-left"></i> Kembali
                 </button>
-                <button className="btn btn-light px-5 py-3 rounded-pill fw-bold" 
-                        style={{ fontSize: '24px', color: '#09637e' }} onClick={() => setStep(3)}>
+                <button className="btn btn-light px-5 py-3 rounded-pill fw-bold"
+                  style={{ fontSize: '24px', color: '#09637e' }} onClick={() => setStep(3)}>
                   Berikutnya <i className="bi bi-play-fill"></i>
                 </button>
               </div>
@@ -164,39 +171,39 @@ const Formulir = () => {
         {step === 3 && (
           <div className="step-content">
             <div className="row g-4">
-                <div className="col-12">
-                    <label className="form-label mb-1">Upload File/Foto Bukti Kekerasan</label>
-                    <span className="form-sub-label text-white d-block mb-3">dapat berupa foto, screenshot, atau dokumen pendukung</span>
-                    <input type="file" className="form-control-custom" accept="image/*" />
-                </div>
-                <div className="col-12 mt-4">
-                    <label className="form-label mb-1">Upload Video Bukti Kekerasan</label>
-                    <span className="form-sub-label text-white">*Jika ada</span>
-                    <input type="file" className="form-control-custom" accept="video/*" />
-                </div>
+              <div className="col-12">
+                <label className="form-label mb-1">Upload File/Foto Bukti Kekerasan</label>
+                <span className="form-sub-label text-white d-block mb-3">dapat berupa foto, screenshot, atau dokumen pendukung</span>
+                <input type="file" className="form-control-custom" accept="image/*" />
+              </div>
+              <div className="col-12 mt-4">
+                <label className="form-label mb-1">Upload Video Bukti Kekerasan</label>
+                <span className="form-sub-label text-white">*Jika ada</span>
+                <input type="file" className="form-control-custom" accept="video/*" />
+              </div>
 
-                <div className="col-12 mt-5">
-                    <h3 className="form-section-title mb-2">Pernyataan Kebenaran</h3>
-                    <div className="pernyataan-box d-flex gap-3 align-items-start">
-                    <input type="checkbox" className="form-check-input" id="pernyataan" style={{width: '30px', height: '30px'}} />
-                    <label className="radio-label" htmlFor="pernyataan" style={{fontSize: '20px'}}>
-                        Saya menyatakan bahwa data yang saya kirimkan adalah benar dan dapat dipertanggungjawabkan.
-                    </label>
-                    </div>
+              <div className="col-12 mt-5">
+                <h3 className="form-section-title mb-2">Pernyataan Kebenaran</h3>
+                <div className="pernyataan-box d-flex gap-3 align-items-start">
+                  <input type="checkbox" className="form-check-input" id="pernyataan" style={{ width: '30px', height: '30px' }} />
+                  <label className="radio-label" htmlFor="pernyataan" style={{ fontSize: '20px' }}>
+                    Saya menyatakan bahwa data yang saya kirimkan adalah benar dan dapat dipertanggungjawabkan.
+                  </label>
                 </div>
+              </div>
 
-                <div className="col-12 text-center mt-5 pt-4">
-                    <div className="d-flex flex-column flex-md-row justify-content-center align-items-center gap-4">
-                    <button className="btn btn-outline-light px-5 py-3 rounded-pill fw-bold"
-                            style={{ fontSize: '24px' }} onClick={() => setStep(2)}>
-                        <i className="bi bi-arrow-left"></i> Kembali
-                    </button>
-                    <button className="btn-buat-laporan shadow-lg" onClick={handleFinalSubmit}>
-                        <i className="bi bi-megaphone-fill"></i> Buat Laporan
-                    </button>
-                    </div>
+              <div className="col-12 text-center mt-5 pt-4">
+                <div className="d-flex flex-column flex-md-row justify-content-center align-items-center gap-4">
+                  <button className="btn btn-outline-light px-5 py-3 rounded-pill fw-bold"
+                    style={{ fontSize: '24px' }} onClick={() => setStep(2)}>
+                    <i className="bi bi-arrow-left"></i> Kembali
+                  </button>
+                  <button className="btn-buat-laporan shadow-lg" onClick={handleFinalSubmit}>
+                    <i className="bi bi-megaphone-fill"></i> Buat Laporan
+                  </button>
                 </div>
-                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
