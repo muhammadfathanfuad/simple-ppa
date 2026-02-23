@@ -448,16 +448,16 @@ export const generateFormulirIdentifikasi = (formData, jenisKasusList, bentukKek
     const footerText = "Demikian kronologi kejadian ini dibuat dengan sebenar-benarnya untuk digunakan sebagaimana mestinya.";
     const splitFooter = doc.splitTextToSize(footerText, 170);
     doc.text(splitFooter, 105, y, { align: 'center' }); // Centered text
-    y += 20;
+    y += 10;
 
     // --- Signatures ---
-    const leftSigX = 40;
-    const rightSigX = 140;
+    const leftSigX = 52.5;
+    const rightSigX = 157.5;
 
     doc.text('Yang bertanda tangan dibawah,', leftSigX, y, { align: 'center' });
     doc.text('Yang bertanda tangan dibawah,', rightSigX, y, { align: 'center' });
 
-    y += 25; // Space for signatures
+    y += 20; // Space for signatures
 
     // Left Signature (Pelapor?) - Image implies two generic signatures
     // We can put Pelapor on left? Or maybe just leave lines as in the image sample which is blank?
@@ -467,7 +467,7 @@ export const generateFormulirIdentifikasi = (formData, jenisKasusList, bentukKek
 
     // Left Side
     doc.text(formData.namaPelapor || 'Nama Yang Bertanda Tangan', leftSigX, y, { align: 'center' });
-    doc.line(leftSigX - 20, y + 1, leftSigX + 20, y + 1);
+    doc.line(leftSigX - 30, y + 1, leftSigX + 30, y + 1);
 
     y += 4;
     doc.text('Jabatan', leftSigX, y, { align: 'center' });
@@ -479,7 +479,7 @@ export const generateFormulirIdentifikasi = (formData, jenisKasusList, bentukKek
 
     // Right Side
     doc.text(formData.penerimaPengaduan || 'Nama Yang Bertanda Tangan', rightSigX, y, { align: 'center' });
-    doc.line(rightSigX - 20, y + 1, rightSigX + 20, y + 1);
+    doc.line(rightSigX - 30, y + 1, rightSigX + 30, y + 1);
 
     y += 4;
     doc.text('Jabatan', rightSigX, y, { align: 'center' });

@@ -2,8 +2,8 @@ import React from 'react';
 
 const PelaporForm = ({ formData, handleChange }) => {
     return (
-        <div className="border-t border-slate-100 pt-4">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">I. Identitas Pelapor</h3>
+        <div id="identitas-pelapor" className="border-t border-slate-100 pt-4 scroll-mt-[100px]">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 sticky top-[100px] bg-white z-10 py-2 border-b border-slate-100 shadow-sm px-2 -mx-2 rounded">I. Identitas Pelapor</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>

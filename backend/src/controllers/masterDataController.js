@@ -14,7 +14,8 @@ const createMasterDataController = (modelName, idField, nameField) => ({
     },
 
     create: async (req, res) => {
-        const { nama, aktif } = req.body;
+        const { aktif } = req.body;
+        const nama = req.body[nameField] || req.body.nama;
         try {
             const newData = await prisma[modelName].create({
                 data: {
@@ -30,7 +31,8 @@ const createMasterDataController = (modelName, idField, nameField) => ({
 
     update: async (req, res) => {
         const { id } = req.params;
-        const { nama, aktif } = req.body;
+        const { aktif } = req.body;
+        const nama = req.body[nameField] || req.body.nama;
         try {
             const updatedData = await prisma[modelName].update({
                 where: { [idField]: parseInt(id) },
@@ -74,21 +76,21 @@ const kecamatanController = {
         } catch (error) { res.status(500).json({ message: "Gagal mengambil data kecamatan" }); }
     },
     create: async (req, res) => {
-        const { namaKecamatan, kodeKecamatan, warna } = req.body;
+        const { namaKecamatan, kodeKecamatan, warna, fileGeojson } = req.body;
         try {
             const newData = await prisma.kecamatan.create({
-                data: { namaKecamatan, kodeKecamatan, warna }
+                data: { namaKecamatan, kodeKecamatan, warna, fileGeojson }
             });
             res.status(201).json(newData);
         } catch (error) { res.status(500).json({ message: "Gagal membuat kecamatan" }); }
     },
     update: async (req, res) => {
         const { id } = req.params;
-        const { namaKecamatan, kodeKecamatan, warna } = req.body;
+        const { namaKecamatan, kodeKecamatan, warna, fileGeojson } = req.body;
         try {
             const updated = await prisma.kecamatan.update({
                 where: { idKecamatan: parseInt(id) },
-                data: { namaKecamatan, kodeKecamatan, warna }
+                data: { namaKecamatan, kodeKecamatan, warna, fileGeojson }
             });
             res.json(updated);
         } catch (error) { res.status(500).json({ message: "Gagal update kecamatan" }); }

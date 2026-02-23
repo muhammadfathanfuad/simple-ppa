@@ -1,15 +1,27 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const Sidebar = ({ isOpen = true, setIsOpen }) => {
     const navigate = useNavigate();
 
     const handleLogout = () => {
-        if (window.confirm('Apakah Anda yakin ingin keluar?')) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            navigate('/login');
-        }
+        Swal.fire({
+            title: 'Konfirmasi Keluar',
+            text: 'Apakah Anda yakin ingin keluar dari sistem?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#0d9488',
+            cancelButtonColor: '#ef4444',
+            confirmButtonText: 'Ya, Keluar!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                navigate('/login');
+            }
+        });
     };
 
     // Helper to close sidebar on mobile when link is clicked

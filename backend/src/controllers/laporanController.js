@@ -82,14 +82,68 @@ const buatLaporan = async (req, res) => {
     return res.status(400).json({ message: "Jenis kasus harus dipilih." });
   }
 
+  const mapToEnum = (value, enumType, existingOtherValue) => {
+    if (!value) return { enumVal: undefined, otherVal: existingOtherValue };
+    const valUpper = value.toString().toUpperCase().trim();
+    const mappings = {
+      Pekerjaan: {
+        "GURU": "Guru", "PEDAGANG": "Pedagang", "BURUH": "Buruh", "WIRASWASTA": "Wiraswasta", "KARYAWAN": "Karyawan",
+        "TNI/POLRI": "TNI_POLRI", "TNI_POLRI": "TNI_POLRI", "TANI": "Tani", "PETANI": "Tani",
+        "PELAJAR/MAHASISWA": "Pelajar_Mahasiswa", "PELAJAR_MAHASISWA": "Pelajar_Mahasiswa", "PELAJAR": "Pelajar_Mahasiswa", "MAHASISWA": "Pelajar_Mahasiswa",
+        "IBU RUMAH TANGGA": "Ibu_Rumah_Tangga", "IBU_RUMAH_TANGGA": "Ibu_Rumah_Tangga", "IRT": "Ibu_Rumah_Tangga", "LAINNYA": "Lainnya"
+      },
+      Agama: {
+        "ISLAM": "Islam", "KRISTEN": "Kristen", "KATOLIK": "Katolik", "HINDU": "Hindu",
+        "BUDHA": "Budha", "KONGHUCHU": "Konghuchu", "LAINNYA": "Lainnya"
+      },
+      Pendidikan: {
+        "TIDAK SEKOLAH": "Tidak_Sekolah", "TIDAK_SEKOLAH": "Tidak_Sekolah", "SD": "SD",
+        "SLTP": "SLTP", "SMP": "SLTP", "SLTA": "SLTA", "SMA": "SLTA", "SMK": "SLTA",
+        "D1/D2/D3": "D1_D2_D3", "D3": "D1_D2_D3", "S1/S2/S3": "S1_S2_S3", "S1": "S1_S2_S3", "SARJANA": "S1_S2_S3", "LAINNYA": "Lainnya"
+      },
+      StatusPelapor: {
+        "KORBAN LANGSUNG": "Korban_Langsung", "KORBAN_LANGSUNG": "Korban_Langsung", "KELUARGA": "Keluarga",
+        "TETANGGA": "Tetangga", "TEMAN": "Teman", "SAKSI": "Saksi", "LAINNYA": "Lainnya"
+      },
+      JenisKelamin: {
+        "LAKI-LAKI": "Laki_laki", "LAKI_LAKI": "Laki_laki", "PEREMPUAN": "Perempuan"
+      }
+    };
+    const map = mappings[enumType];
+    if (!map) return { enumVal: undefined, otherVal: existingOtherValue };
+    if (map[valUpper]) return { enumVal: map[valUpper], otherVal: existingOtherValue };
+    return { enumVal: "Lainnya", otherVal: value };
+  };
+
+  // Process Enums for Pelapor
+  const pelaporPekerjaan = mapToEnum(pelapor.pekerjaan, 'Pekerjaan', pelapor.pekerjaanLainnya);
+  const pelaporAgama = mapToEnum(pelapor.agama, 'Agama', pelapor.agamaLainnya);
+  const pelaporStatus = mapToEnum(pelapor.statusPelapor, 'StatusPelapor', pelapor.statusPelaporLainnya);
+
+  // Process Enums for Korban
+  const korbanPekerjaan = mapToEnum(korban.pekerjaan, 'Pekerjaan', korban.pekerjaanLainnya);
+  const korbanAgama = mapToEnum(korban.agama, 'Agama', korban.agamaLainnya);
+  const korbanPendidikan = mapToEnum(korban.pendidikan, 'Pendidikan', korban.pendidikanLainnya);
+  const korbanJK = mapToEnum(korban.jenisKelamin, 'JenisKelamin', null);
+
+  // Process Enums for Terlapor
+  const terlaporPendidikan = terlapor ? mapToEnum(terlapor.pendidikan, 'Pendidikan', null) : { enumVal: undefined };
+  const terlaporAgama = terlapor ? mapToEnum(terlapor.agama, 'Agama', null) : { enumVal: undefined };
+
   try {
     const result = await prisma.$transaction(async (tx) => {
       // Upsert Pelapor (Gunakan idLaporan sebagai unique karena di schema @unique)
       const pelaporData = await tx.pelapor.create({
         data: {
-          nama: pelapor.namaPelapor,
-          alamatLengkap: pelapor.alamatPelapor,
-          nomorWhatsapp: pelapor.noTelpPelapor,
+          nama: pelapor.namaPelapor || pelapor.nama,
+          alamatLengkap: pelapor.alamatPelapor || pelapor.alamatLengkap,
+          nomorWhatsapp: pelapor.noTelpPelapor || pelapor.nomorWhatsapp || pelapor.nomorTelepon,
+          pekerjaan: pelaporPekerjaan.enumVal,
+          pekerjaanLainnya: pelaporPekerjaan.otherVal,
+          agama: pelaporAgama.enumVal,
+          agamaLainnya: pelaporAgama.otherVal,
+          statusPelapor: pelaporStatus.enumVal,
+          statusPelaporLainnya: pelaporStatus.otherVal,
           // Tangani field enum atau date jika perlu
           tanggalLahir: pelapor.tanggalLahir ? new Date(pelapor.tanggalLahir) : null,
           laporan: {
@@ -99,6 +153,7 @@ const buatLaporan = async (req, res) => {
               idJenisKasus: parseInt(laporan.idJenisKasus),
               idBentukKekerasan: parseInt(laporan.idBentukKekerasan),
               lokasiLengkapKejadian: laporan.lokasiLengkapKejadian,
+              lokasiKejadianPerkara: laporan.lokasiKejadianPerkara,
               tanggalKejadian: new Date(laporan.tanggalKejadian),
               // Fix Time Parsing: append dummy date if only time string
               waktuKejadian: laporan.waktuKejadian ? new Date(`1970-01-01T${laporan.waktuKejadian}:00Z`) : null,
@@ -115,12 +170,18 @@ const buatLaporan = async (req, res) => {
               // Relasi Korban dalam satu nest
               korban: {
                 create: {
-                  namaLengkap: korban.namaKorban,
-                  nik: korban.nikKorban,
-                  alamatLengkap: korban.alamatKorban,
-                  jenisKelamin: korban.jenisKelamin === 'Laki-laki' ? 'Laki_laki' : korban.jenisKelamin,
+                  namaLengkap: korban.namaKorban || korban.namaLengkap,
+                  nik: korban.nikKorban || korban.nik,
+                  alamatLengkap: korban.alamatKorban || korban.alamatLengkap,
+                  jenisKelamin: korbanJK.enumVal,
+                  pendidikan: korbanPendidikan.enumVal,
+                  pendidikanLainnya: korbanPendidikan.otherVal,
+                  pekerjaan: korbanPekerjaan.enumVal,
+                  pekerjaanLainnya: korbanPekerjaan.otherVal,
+                  agama: korbanAgama.enumVal,
+                  agamaLainnya: korbanAgama.otherVal,
                   tanggalLahir: korban.tanggalLahir ? new Date(korban.tanggalLahir) : null,
-                  nomorTelepon: korban.nomorTelepon,
+                  nomorTelepon: korban.nomorTelepon || korban.nomorWhatsapp,
                   jumlahAnak: korban.jumlahAnak ? parseInt(korban.jumlahAnak) : null,
                   namaOrtuWali: korban.namaOrtuWali,
                   alamatOrtuWali: korban.alamatOrtuWali,
@@ -138,8 +199,8 @@ const buatLaporan = async (req, res) => {
                   tanggalLahir: terlapor.tanggalLahir ? new Date(terlapor.tanggalLahir) : null,
                   alamat: terlapor.alamat,
                   nomorTelepon: terlapor.nomorTelepon,
-                  pendidikan: terlapor.pendidikan,
-                  agama: terlapor.agama,
+                  pendidikan: terlaporPendidikan.enumVal,
+                  agama: terlaporAgama.enumVal,
                   pekerjaan: terlapor.pekerjaan,
                   statusPerkawinan: terlapor.statusPerkawinan,
                   namaOrtuWali: terlapor.namaOrtuWali,
@@ -356,13 +417,13 @@ const exportLaporan = async (req, res) => {
     });
 
     // Simple CSV Generation
-    const header = "Tiket,Status,Tanggal,Pelapor,Telp Pelapor,Korban,Jenis Kasus,Lokasi\n";
+    const header = "Tiket,Status,Tanggal,Pelapor,Telp Pelapor,Korban,Jenis Kasus,Lokasi Pelapor,Lokasi Kejadian\n";
     const rows = laporan.map(l => {
       const tgl = l.dibuatPada ? new Date(l.dibuatPada).toISOString().split('T')[0] : '-';
       // Sanitizing strings for CSV (replacing commas with space)
       const safe = (str) => str ? String(str).replace(/,/g, ' ').replace(/\n/g, ' ') : '-';
 
-      return `${l.kodeLaporan},${l.statusLaporan},${tgl},${safe(l.pelapor?.nama)},${safe(l.pelapor?.nomorWhatsapp)},${safe(l.korban?.namaLengkap)},${l.idJenisKasus},${safe(l.lokasiLengkapKejadian)}`;
+      return `${l.kodeLaporan},${l.statusLaporan},${tgl},${safe(l.pelapor?.nama)},${safe(l.pelapor?.nomorWhatsapp)},${safe(l.korban?.namaLengkap)},${l.idJenisKasus},${safe(l.lokasiLengkapKejadian)},${safe(l.lokasiKejadianPerkara)}`;
     }).join("\n");
 
     const csvData = header + rows;
@@ -417,66 +478,34 @@ const updateLaporan = async (req, res) => {
     // Otherwise, returns "Lainnya" and the original string is returned as the 'other' value.
     const mapToEnum = (value, enumType, existingOtherValue) => {
       if (!value) return { enumVal: undefined, otherVal: existingOtherValue };
-
-      // Normalization helpers
       const valUpper = value.toString().toUpperCase().trim();
-
-      // Define Mappings for each Enum Type
       const mappings = {
         Pekerjaan: {
-          "GURU": "Guru",
-          "PEDAGANG": "Pedagang",
-          "BURUH": "Buruh",
-          "WIRASWASTA": "Wiraswasta",
-          "KARYAWAN": "Karyawan",
-          "TNI/POLRI": "TNI_POLRI", "TNI_POLRI": "TNI_POLRI",
-          "TANI": "Tani", "PETANI": "Tani",
+          "GURU": "Guru", "PEDAGANG": "Pedagang", "BURUH": "Buruh", "WIRASWASTA": "Wiraswasta", "KARYAWAN": "Karyawan",
+          "TNI/POLRI": "TNI_POLRI", "TNI_POLRI": "TNI_POLRI", "TANI": "Tani", "PETANI": "Tani",
           "PELAJAR/MAHASISWA": "Pelajar_Mahasiswa", "PELAJAR_MAHASISWA": "Pelajar_Mahasiswa", "PELAJAR": "Pelajar_Mahasiswa", "MAHASISWA": "Pelajar_Mahasiswa",
-          "IBU RUMAH TANGGA": "Ibu_Rumah_Tangga", "IBU_RUMAH_TANGGA": "Ibu_Rumah_Tangga", "IRT": "Ibu_Rumah_Tangga",
-          "LAINNYA": "Lainnya"
+          "IBU RUMAH TANGGA": "Ibu_Rumah_Tangga", "IBU_RUMAH_TANGGA": "Ibu_Rumah_Tangga", "IRT": "Ibu_Rumah_Tangga", "LAINNYA": "Lainnya"
         },
         Agama: {
-          "ISLAM": "Islam",
-          "KRISTEN": "Kristen",
-          "KATOLIK": "Katolik",
-          "HINDU": "Hindu",
-          "BUDHA": "Budha",
-          "ISLAM": "Islam",
-          "KONGHUCHU": "Konghuchu",
-          "LAINNYA": "Lainnya"
+          "ISLAM": "Islam", "KRISTEN": "Kristen", "KATOLIK": "Katolik", "HINDU": "Hindu",
+          "BUDHA": "Budha", "KONGHUCHU": "Konghuchu", "LAINNYA": "Lainnya"
         },
         Pendidikan: {
-          "TIDAK SEKOLAH": "Tidak_Sekolah", "TIDAK_SEKOLAH": "Tidak_Sekolah",
-          "SD": "SD",
-          "SLTP": "SLTP", "SMP": "SLTP",
-          "SLTA": "SLTA", "SMA": "SLTA", "SMK": "SLTA",
-          "D1/D2/D3": "D1_D2_D3", "D3": "D1_D2_D3",
-          "S1/S2/S3": "S1_S2_S3", "S1": "S1_S2_S3", "SARJANA": "S1_S2_S3",
-          "LAINNYA": "Lainnya"
+          "TIDAK SEKOLAH": "Tidak_Sekolah", "TIDAK_SEKOLAH": "Tidak_Sekolah", "SD": "SD",
+          "SLTP": "SLTP", "SMP": "SLTP", "SLTA": "SLTA", "SMA": "SLTA", "SMK": "SLTA",
+          "D1/D2/D3": "D1_D2_D3", "D3": "D1_D2_D3", "S1/S2/S3": "S1_S2_S3", "S1": "S1_S2_S3", "SARJANA": "S1_S2_S3", "LAINNYA": "Lainnya"
         },
         StatusPelapor: {
-          "KORBAN LANGSUNG": "Korban_Langsung", "KORBAN_LANGSUNG": "Korban_Langsung",
-          "KELUARGA": "Keluarga",
-          "TETANGGA": "Tetangga",
-          "TEMAN": "Teman",
-          "SAKSI": "Saksi",
-          "LAINNYA": "Lainnya"
+          "KORBAN LANGSUNG": "Korban_Langsung", "KORBAN_LANGSUNG": "Korban_Langsung", "KELUARGA": "Keluarga",
+          "TETANGGA": "Tetangga", "TEMAN": "Teman", "SAKSI": "Saksi", "LAINNYA": "Lainnya"
         },
-        JenisKelamin: { // Not strictly needed if dropdown, but good for safety
-          "LAKI-LAKI": "Laki_laki", "LAKI_LAKI": "Laki_laki",
-          "PEREMPUAN": "Perempuan"
+        JenisKelamin: {
+          "LAKI-LAKI": "Laki_laki", "LAKI_LAKI": "Laki_laki", "PEREMPUAN": "Perempuan"
         }
       };
-
       const map = mappings[enumType];
-      if (!map) return { enumVal: undefined, otherVal: existingOtherValue }; // Should not happen if used correctly
-
-      // Check for direct match or mapped alias
-      if (map[valUpper]) {
-        return { enumVal: map[valUpper], otherVal: existingOtherValue };
-      }
-
-      // No match -> Lainnya
+      if (!map) return { enumVal: undefined, otherVal: existingOtherValue };
+      if (map[valUpper]) return { enumVal: map[valUpper], otherVal: existingOtherValue };
       return { enumVal: "Lainnya", otherVal: value };
     };
 
@@ -503,6 +532,7 @@ const updateLaporan = async (req, res) => {
         tanggalKejadian: laporan.tanggalKejadian ? new Date(laporan.tanggalKejadian) : undefined,
         waktuKejadian: laporan.waktuKejadian ? new Date(`1970-01-01T${laporan.waktuKejadian}:00Z`) : undefined,
         lokasiLengkapKejadian: laporan.lokasiLengkapKejadian,
+        lokasiKejadianPerkara: laporan.lokasiKejadianPerkara,
         kronologiKejadian: laporan.kronologiKejadian,
         harapanKorban: laporan.harapanKorban,
         layananDibutuhkan: laporan.layananDibutuhkan,
@@ -736,7 +766,8 @@ const exportExcel = async (req, res) => {
       { header: 'Hubungan dgn Korban', key: 'hubunganTerlapor', width: 20 },
       // Kasus
       { header: 'Tanggal Kejadian', key: 'tglKejadian', width: 15 },
-      { header: 'Lokasi Kejadian', key: 'lokasiKejadian', width: 30 },
+      { header: 'Lokasi Pelapor', key: 'lokasiPelapor', width: 30 },
+      { header: 'Lokasi Kejadian Perkara', key: 'lokasiKejadian', width: 30 },
       { header: 'Kronologi', key: 'kronologi', width: 40 },
       { header: 'Link Bukti', key: 'linkBukti', width: 40 },
     ];
@@ -768,7 +799,8 @@ const exportExcel = async (req, res) => {
         hubunganTerlapor: l.terlapor?.hubunganDenganKorban || '-',
         // Kasus
         tglKejadian: l.tanggalKejadian ? new Date(l.tanggalKejadian).toISOString().split('T')[0] : '-',
-        lokasiKejadian: l.lokasiLengkapKejadian,
+        lokasiPelapor: l.lokasiLengkapKejadian,
+        lokasiKejadian: l.lokasiKejadianPerkara,
         kronologi: l.kronologiKejadian,
         linkBukti: buktiLinks
       });

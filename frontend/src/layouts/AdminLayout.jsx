@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import Swal from 'sweetalert2';
 
 const AdminLayout = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth >= 768);
@@ -22,11 +23,22 @@ const AdminLayout = () => {
     }, []);
 
     const handleLogout = () => {
-        if (window.confirm('Apakah Anda yakin ingin keluar?')) {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            navigate('/login');
-        }
+        Swal.fire({
+            title: 'Konfirmasi Keluar',
+            text: 'Apakah Anda yakin ingin keluar dari sistem?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#0d9488',
+            cancelButtonColor: '#ef4444',
+            confirmButtonText: 'Ya, Keluar!',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                navigate('/login');
+            }
+        });
     };
 
     const toggleSidebar = () => {

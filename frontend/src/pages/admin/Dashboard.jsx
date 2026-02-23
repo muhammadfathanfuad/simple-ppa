@@ -11,9 +11,10 @@ import {
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
+    BarElement
 } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 
 ChartJS.register(
     CategoryScale,
@@ -23,7 +24,8 @@ ChartJS.register(
     Title,
     Tooltip,
     Legend,
-    Filler
+    Filler,
+    BarElement
 );
 
 // Fix for default marker icon issue in Leaflet with Webpack/Vite
@@ -47,7 +49,9 @@ const Dashboard = () => {
         yearlyStats: [],
         monthlyStats: [],
         weeklyStats: [],
-        regions: []
+        regions: [],
+        kasusStats: [],
+        usiaStats: { 'Laki-laki': {}, 'Perempuan': {} }
     });
     const [chartFilter, setChartFilter] = useState('year'); // 'year', 'month', 'week'
     const [loading, setLoading] = useState(true);
@@ -183,6 +187,112 @@ const Dashboard = () => {
         },
     };
 
+    // --- NEW CHARTS CONFIGURATIONS ---
+
+    // 1. Per Kecamatan (Horizontal Bar Chart)
+    const sortedRegions = [...(stats.regions || [])].sort((a, b) => b.reportCount - a.reportCount);
+    const kecamatanChartData = {
+        labels: sortedRegions.map(r => r.name),
+        datasets: [{
+            label: 'Jumlah Laporan',
+            data: sortedRegions.map(r => r.reportCount),
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderRadius: 4,
+        }]
+    };
+    const horizontalBarOptions = {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                titleColor: '#1e293b',
+                bodyColor: '#475569',
+                borderColor: '#e2e8f0',
+                borderWidth: 1,
+            }
+        },
+        scales: {
+            x: {
+                beginAtZero: true,
+                grid: { color: '#f1f5f9' },
+                ticks: { stepSize: 1, font: { size: 11 }, color: '#64748b' }
+            },
+            y: {
+                grid: { display: false },
+                ticks: { font: { size: 11 }, color: '#64748b' }
+            }
+        }
+    };
+
+    // 2. Per Usia & Jenis Kelamin (Grouped Bar Chart)
+    const usiaLabels = ['0-5', '6-11', '12-17', '18-25', '26-45', '46+'];
+    const usiaLakiData = usiaLabels.map(label => stats.usiaStats?.['Laki-laki']?.[label] || 0);
+    const usiaPerempuanData = usiaLabels.map(label => stats.usiaStats?.['Perempuan']?.[label] || 0);
+
+    const usiaChartData = {
+        labels: usiaLabels,
+        datasets: [
+            {
+                label: 'Laki-laki',
+                data: usiaLakiData,
+                backgroundColor: 'rgba(59, 130, 246, 0.8)', // Blue
+                borderRadius: 4,
+            },
+            {
+                label: 'Perempuan',
+                data: usiaPerempuanData,
+                backgroundColor: 'rgba(236, 72, 153, 0.8)', // Pink
+                borderRadius: 4,
+            }
+        ]
+    };
+    const groupedBarOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: {
+                    usePointStyle: true,
+                    boxWidth: 8,
+                    font: { size: 11 }
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                titleColor: '#1e293b',
+                bodyColor: '#475569',
+                borderColor: '#e2e8f0',
+                borderWidth: 1,
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: { color: '#f1f5f9' },
+                ticks: { stepSize: 1, font: { size: 11 }, color: '#64748b' }
+            },
+            x: {
+                grid: { display: false },
+                ticks: { font: { size: 11 }, color: '#64748b' }
+            }
+        }
+    };
+
+    // 3. Per Kasus (Horizontal Bar Chart)
+    const kasusChartData = {
+        labels: (stats.kasusStats || []).map(k => k.name),
+        datasets: [{
+            label: 'Jumlah Kasus',
+            data: (stats.kasusStats || []).map(k => k.count),
+            backgroundColor: 'rgba(16, 185, 129, 0.8)', // Emerald
+            borderRadius: 4,
+        }]
+    };
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -215,21 +325,46 @@ const Dashboard = () => {
                 {/* Add more stats cards here if needed */}
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-bold text-slate-700">Tren Laporan</h3>
-                    <select
-                        className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
-                        value={chartFilter}
-                        onChange={(e) => setChartFilter(e.target.value)}
-                    >
-                        <option value="year">Tahun Ini</option>
-                        <option value="month">Bulan Ini</option>
-                        <option value="week">Minggu Ini</option>
-                    </select>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-700">Tren Laporan</h3>
+                        <select
+                            className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
+                            value={chartFilter}
+                            onChange={(e) => setChartFilter(e.target.value)}
+                        >
+                            <option value="year">Tahun Ini</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="week">Minggu Ini</option>
+                        </select>
+                    </div>
+                    <div className="h-[300px]">
+                        <Line data={chartData} options={chartOptions} />
+                    </div>
                 </div>
-                <div className="h-[300px]">
-                    <Line data={chartData} options={chartOptions} />
+
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-700 mb-4">Statistik Per Jenis Kasus</h3>
+                    <div className="h-[300px]">
+                        <Bar data={kasusChartData} options={horizontalBarOptions} />
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-700 mb-4">Statistik Per Kecamatan</h3>
+                    <div className="h-[300px]">
+                        <Bar data={kecamatanChartData} options={horizontalBarOptions} />
+                    </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 className="text-lg font-bold text-slate-700 mb-4">Statistik Per Usia & Jenis Kelamin</h3>
+                    <div className="h-[300px]">
+                        <Bar data={usiaChartData} options={groupedBarOptions} />
+                    </div>
                 </div>
             </div>
 

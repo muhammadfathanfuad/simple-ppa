@@ -8,6 +8,7 @@ const useComplaintForm = (id) => {
     const [dataLoading, setDataLoading] = useState(!!id);
     const [jenisKasusList, setJenisKasusList] = useState([]);
     const [bentukKekerasanList, setBentukKekerasanList] = useState([]);
+    const [kecamatanList, setKecamatanList] = useState([]);
     const [formType, setFormType] = useState('Anak'); // 'Anak' or 'Perempuan'
 
     const [formData, setFormData] = useState({
@@ -16,6 +17,7 @@ const useComplaintForm = (id) => {
         namaKlien: '',
         alamatKlien: '',
         penerimaPengaduan: '',
+        idKecamatan: '',
 
         // Pelapor
         namaPelapor: '',
@@ -76,6 +78,7 @@ const useComplaintForm = (id) => {
         tanggalKejadian: '',
         waktuKejadian: '',
         tempatKejadian: '',
+        lokasiKejadianPerkara: '',
         harapanKorban: '',
         layananDibutuhkan: '',
         rujukanDari: '',
@@ -100,9 +103,10 @@ const useComplaintForm = (id) => {
 
     const fetchMasterData = async () => {
         try {
-            const [resKasus, resKekerasan] = await Promise.all([
+            const [resKasus, resKekerasan, resKecamatan] = await Promise.all([
                 fetch('http://localhost:5000/api/laporan/master/jenis-kasus'),
-                fetch('http://localhost:5000/api/laporan/master/bentuk-kekerasan')
+                fetch('http://localhost:5000/api/laporan/master/bentuk-kekerasan'),
+                fetch('http://localhost:5000/api/laporan/master/kecamatan')
             ]);
 
             if (resKasus.ok) {
@@ -112,6 +116,10 @@ const useComplaintForm = (id) => {
             if (resKekerasan.ok) {
                 const data = await resKekerasan.json();
                 setBentukKekerasanList(data);
+            }
+            if (resKecamatan.ok) {
+                const data = await resKecamatan.json();
+                setKecamatanList(data);
             }
         } catch (error) {
             console.error("Error fetching master data:", error);
@@ -210,9 +218,11 @@ const useComplaintForm = (id) => {
                     gambaranKasus: data.kronologiKejadian || '',
                     kategoriKasus: data.idJenisKasus || '',
                     bentukKekerasan: data.idBentukKekerasan || '',
+                    idKecamatan: data.idKecamatan || '',
                     tanggalKejadian: data.tanggalKejadian ? data.tanggalKejadian.split('T')[0] : '',
                     waktuKejadian: data.waktuKejadian ? new Date(data.waktuKejadian).toTimeString().slice(0, 5) : '',
                     tempatKejadian: data.lokasiLengkapKejadian || '',
+                    lokasiKejadianPerkara: data.lokasiKejadianPerkara || '',
                     harapanKorban: data.harapanKorban || '',
                     layananDibutuhkan: data.layananDibutuhkan || '',
                     rujukanDari: data.rujukanDari || '',
@@ -342,12 +352,14 @@ const useComplaintForm = (id) => {
             },
             laporan: {
                 tanggal: formData.tanggal,
+                idKecamatan: formData.idKecamatan,
                 idJenisKasus: formData.kategoriKasus,
                 idBentukKekerasan: formData.bentukKekerasan,
                 kronologiKejadian: formData.gambaranKasus,
                 tanggalKejadian: formData.tanggalKejadian,
                 waktuKejadian: formData.waktuKejadian,
                 lokasiLengkapKejadian: formData.tempatKejadian,
+                lokasiKejadianPerkara: formData.lokasiKejadianPerkara,
                 harapanKorban: formData.harapanKorban,
                 layananDibutuhkan: formData.layananDibutuhkan,
                 rujukanDari: formData.rujukanDari,
@@ -362,7 +374,7 @@ const useComplaintForm = (id) => {
         try {
             const url = id
                 ? `http://localhost:5000/api/laporan/update/${id}`
-                : 'http://localhost:5000/api/laporan/create';
+                : 'http://localhost:5000/api/laporan/submit';
 
             const method = id ? 'PUT' : 'POST';
 
@@ -421,6 +433,7 @@ const useComplaintForm = (id) => {
         dataLoading,
         jenisKasusList,
         bentukKekerasanList,
+        kecamatanList,
         formType,
         setFormType,
         handleChange,

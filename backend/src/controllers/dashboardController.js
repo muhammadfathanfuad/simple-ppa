@@ -129,6 +129,52 @@ const getDashboardStats = async (req, res) => {
             };
         });
 
+        // 4. Get cases by case type (Jenis Kasus)
+        const jenisKasusData = await prisma.jenisKasus.findMany({
+            include: {
+                _count: { select: { laporan: true } }
+            }
+        });
+        const kasusStats = jenisKasusData.map(jk => ({
+            name: jk.namaJenisKasus,
+            count: jk._count.laporan
+        })).sort((a, b) => b.count - a.count);
+
+        // 5. Get victims data to calculate age and gender stats
+        const korbanData = await prisma.korban.findMany({
+            select: {
+                tanggalLahir: true,
+                jenisKelamin: true
+            }
+        });
+
+        const usiaStats = {
+            'Laki-laki': { '0-5': 0, '6-11': 0, '12-17': 0, '18-25': 0, '26-45': 0, '46+': 0 },
+            'Perempuan': { '0-5': 0, '6-11': 0, '12-17': 0, '18-25': 0, '26-45': 0, '46+': 0 }
+        };
+
+        const today = new Date();
+        korbanData.forEach(korban => {
+            if (korban.jenisKelamin && korban.tanggalLahir) {
+                const birthDate = new Date(korban.tanggalLahir);
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+
+                const jk = korban.jenisKelamin === 'Laki-laki' || korban.jenisKelamin === 'Laki_laki' ? 'Laki-laki' : 'Perempuan';
+                if (usiaStats[jk]) {
+                    if (age >= 0 && age <= 5) usiaStats[jk]['0-5']++;
+                    else if (age >= 6 && age <= 11) usiaStats[jk]['6-11']++;
+                    else if (age >= 12 && age <= 17) usiaStats[jk]['12-17']++;
+                    else if (age >= 18 && age <= 25) usiaStats[jk]['18-25']++;
+                    else if (age >= 26 && age <= 45) usiaStats[jk]['26-45']++;
+                    else if (age >= 46) usiaStats[jk]['46+']++;
+                }
+            }
+        });
+
         res.json({
             totalReports,
             reportsInProcess,
@@ -136,7 +182,9 @@ const getDashboardStats = async (req, res) => {
             yearlyStats,
             monthlyStats,
             weeklyStats,
-            regions: regionData
+            regions: regionData,
+            kasusStats,
+            usiaStats
         });
 
     } catch (error) {

@@ -126,7 +126,9 @@ const MasterTable = ({ title, endpoint, columns, onCreate, onUpdate, onDelete })
                             data.map((item, idx) => (
                                 <tr key={idx}>
                                     {columns.map((col, cIdx) => (
-                                        <td key={cIdx} className="px-4 py-2">{item[col.key]}</td>
+                                        <td key={cIdx} className="px-4 py-2">
+                                            {col.render ? col.render(item[col.key]) : item[col.key]}
+                                        </td>
                                     ))}
                                     <td className="px-4 py-2 text-right">
                                         <button onClick={() => { setFormData(item); setEditId(Object.values(item)[0]); setShowModal(true); }} className="text-blue-600 hover:underline text-xs mr-2">Edit</button>
@@ -147,13 +149,41 @@ const MasterTable = ({ title, endpoint, columns, onCreate, onUpdate, onDelete })
                             {columns.map((col) => (
                                 <div key={col.key}>
                                     <label className="block text-xs font-medium text-slate-600 mb-1">{col.label}</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData[col.key] || ''}
-                                        onChange={(e) => setFormData({ ...formData, [col.key]: e.target.value })}
-                                        className="w-full px-3 py-2 border rounded text-sm"
-                                    />
+                                    {col.inputType === 'file' ? (
+                                        <div>
+                                            <input
+                                                type="file"
+                                                accept=".geojson,application/geo+json,application/json"
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file) {
+                                                        const reader = new FileReader();
+                                                        reader.onload = (event) => {
+                                                            setFormData({ ...formData, [col.key]: event.target.result });
+                                                        };
+                                                        reader.readAsText(file);
+                                                    }
+                                                }}
+                                                className="w-full px-3 py-2 text-sm text-slate-500
+                                                    file:mr-4 file:py-1 file:px-3
+                                                    file:rounded file:border-0
+                                                    file:text-xs file:font-medium
+                                                    file:bg-slate-100 file:text-slate-700
+                                                    hover:file:bg-slate-200 border rounded"
+                                            />
+                                            {formData[col.key] && typeof formData[col.key] === 'string' && formData[col.key].length > 100 && (
+                                                <p className="text-[10px] text-teal-600 mt-1">File GeoJSON sudah terisi.</p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <input
+                                            type={col.inputType || "text"}
+                                            required={!col.optional}
+                                            value={formData[col.key] || ''}
+                                            onChange={(e) => setFormData({ ...formData, [col.key]: e.target.value })}
+                                            className="w-full px-3 py-2 border rounded text-sm"
+                                        />
+                                    )}
                                 </div>
                             ))}
                             <div className="flex gap-2 justify-end mt-4">
@@ -190,7 +220,8 @@ const FormSettings = () => {
                     columns={[
                         { label: 'Nama Kecamatan', key: 'namaKecamatan' },
                         { label: 'Kode', key: 'kodeKecamatan' },
-                        { label: 'Warna Peta', key: 'warna' }
+                        { label: 'Warna Peta', key: 'warna', inputType: 'color', optional: true },
+                        { label: 'File GeoJSON', key: 'fileGeojson', inputType: 'file', optional: true, render: (val) => val && val.length > 100 ? <span className="text-teal-600 text-xs font-medium">Tersedia</span> : <span className="text-slate-400 text-xs">Kosong</span> }
                     ]}
                 />
             </div>

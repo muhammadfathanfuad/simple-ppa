@@ -2,8 +2,8 @@ import React from 'react';
 
 const TraffickingForm = ({ formData, handleChange }) => {
     return (
-        <div className="mt-4 border-t border-slate-200 pt-4">
-            <label className="flex items-center gap-2 mb-4">
+        <div id="trafficking" className="mt-4 border-t border-slate-200 pt-4 scroll-mt-[100px]">
+            <label className="flex items-center gap-2 mb-4 sticky top-[100px] bg-white z-10 py-2 border-b border-slate-100 shadow-sm px-2 -mx-2 rounded cursor-pointer">
                 <input
                     type="checkbox"
                     name="isTrafficking"

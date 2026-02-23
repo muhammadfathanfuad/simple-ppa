@@ -115,6 +115,7 @@ model Laporan {
   tanggalKejadian        DateTime      @map("tanggal_kejadian") @db.Date
   waktuKejadian          DateTime?     @map("waktu_kejadian") @db.Time(0)
   lokasiLengkapKejadian  String        @db.VarChar(255) @map("lokasi_lengkap_kejadian")
+  lokasiKejadianPerkara  String?       @db.VarChar(255) @map("lokasi_kejadian_perkara")
   uraianSingkat          String?       @db.VarChar(255) @map("uraian_singkat")
   harapanKorban          String?       @db.Text @map("harapan_korban")
   kronologiKejadian      String        @db.Text @map("kronologi_kejadian")

@@ -2,8 +2,8 @@ import React from 'react';
 
 const KorbanForm = ({ formData, handleChange, formType }) => {
     return (
-        <div className="border-t border-slate-100 pt-4">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">II. Identitas Korban</h3>
+        <div id="identitas-korban" className="border-t border-slate-100 pt-4 scroll-mt-[100px]">
+            <h3 className="text-lg font-bold text-slate-800 mb-4 sticky top-[100px] bg-white z-10 py-2 border-b border-slate-100 shadow-sm px-2 -mx-2 rounded">II. Identitas Korban</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-1">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Nama Lengkap</label>
@@ -65,9 +65,21 @@ const KorbanForm = ({ formData, handleChange, formType }) => {
                     <input type="text" name="pekerjaanKorban" value={formData.pekerjaanKorban} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah Anak</label>
-                    <input type="number" name="jumlahAnakKorban" value={formData.jumlahAnakKorban} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Status Perkawinan</label>
+                    <select name="statusPerkawinanKorban" value={formData.statusPerkawinanKorban || ''} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        <option value="">Pilih Status</option>
+                        <option value="Belum Kawin">Belum Kawin</option>
+                        <option value="Kawin">Kawin</option>
+                        <option value="Cerai Hidup">Cerai Hidup</option>
+                        <option value="Cerai Mati">Cerai Mati</option>
+                    </select>
                 </div>
+                {['Kawin', 'Cerai Hidup', 'Cerai Mati'].includes(formData.statusPerkawinanKorban) && (
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Jumlah Anak</label>
+                        <input type="number" name="jumlahAnakKorban" value={formData.jumlahAnakKorban || ''} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                    </div>
+                )}
 
                 <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Alamat Lengkap</label>
@@ -120,18 +132,7 @@ const KorbanForm = ({ formData, handleChange, formType }) => {
             {/* Status Perkawinan & Disabilitas sections */}
             <div className="border-t border-slate-50 mt-2 pt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {formType === 'Perempuan' && (
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 mb-1">Status Perkawinan</label>
-                            <select name="statusPerkawinanKorban" value={formData.statusPerkawinanKorban} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg">
-                                <option value="">Pilih Status</option>
-                                <option value="Belum Kawin">Belum Kawin</option>
-                                <option value="Kawin">Kawin</option>
-                                <option value="Cerai Hidup">Cerai Hidup</option>
-                                <option value="Cerai Mati">Cerai Mati</option>
-                            </select>
-                        </div>
-                    )}
+
                     <div className="flex items-center gap-4 mt-8">
                         <label className="flex items-center gap-2">
                             <input

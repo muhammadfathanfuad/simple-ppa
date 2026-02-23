@@ -234,6 +234,26 @@ const FormLapor = () => {
         };
 
         // Validation
+        if (!payload.pelapor.namaPelapor) {
+            Swal.fire('Peringatan', 'Harap isi nama pelapor.', 'warning');
+            setLoading(false);
+            return;
+        }
+        if (!payload.pelapor.noTelpPelapor) {
+            Swal.fire('Peringatan', 'Harap isi nomor HP pelapor.', 'warning');
+            setLoading(false);
+            return;
+        }
+        if (!payload.korban.namaKorban) {
+            Swal.fire('Peringatan', 'Harap isi nama korban.', 'warning');
+            setLoading(false);
+            return;
+        }
+        if (!payload.korban.jenisKelamin) {
+            Swal.fire('Peringatan', 'Harap pilih jenis kelamin korban.', 'warning');
+            setLoading(false);
+            return;
+        }
         if (!payload.laporan.idJenisKasus) {
             Swal.fire('Peringatan', 'Harap pilih jenis kekerasan.', 'warning');
             setLoading(false);
@@ -297,7 +317,6 @@ const FormLapor = () => {
                     <option value="Korban Langsung">Korban (Saya Sendiri)</option>
                     <option value="Keluarga">Keluarga / Kerabat</option>
                     <option value="Saksi">Saksi</option>
-                    <option value="Lainnya">Lainnya</option>
                 </select>
             </div>
 
