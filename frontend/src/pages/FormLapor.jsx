@@ -344,6 +344,22 @@ const FormLapor = () => {
                 />
             </div>
 
+            {formData.hubungan === 'Korban Langsung' && (
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Jenis Kelamin</label>
+                    <select
+                        name="jenisKelaminKorban"
+                        value={formData.jenisKelaminKorban}
+                        onChange={handleChange}
+                        className={`w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 outline-none transition bg-white ${!formData.jenisKelaminKorban ? 'text-slate-400' : 'text-slate-900'}`}
+                    >
+                        <option value="" disabled>Pilih Jenis Kelamin</option>
+                        <option value="Laki-laki" className="text-slate-900">Laki-laki</option>
+                        <option value="Perempuan" className="text-slate-900">Perempuan</option>
+                    </select>
+                </div>
+            )}
+
             {formData.hubungan !== 'Korban Langsung' && (
                 <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 mt-4">
                     <h4 className="text-sm font-bold text-slate-700 mb-4">Data Korban</h4>
