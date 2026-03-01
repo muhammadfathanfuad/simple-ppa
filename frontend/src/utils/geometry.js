@@ -22,7 +22,8 @@ export const isPointInPolygon = (point, vs) => {
 };
 
 const checkPolygon = (lat, lng, feature) => {
-    const geometry = feature.geometry;
+    // If the passed object already has coordinates, treat it as the geometry.
+    const geometry = feature.geometry || (feature.coordinates ? feature : null);
     if (!geometry) return false;
 
     if (geometry.type === 'Polygon') {
@@ -55,6 +56,10 @@ export const findKecamatanByLocation = (lat, lng, kecamatanList) => {
                     }
                 }
             } else if (geoJson.type === 'Feature') {
+                if (checkPolygon(lat, lng, geoJson)) {
+                    matched = true;
+                }
+            } else if (geoJson.type === 'Polygon' || geoJson.type === 'MultiPolygon') {
                 if (checkPolygon(lat, lng, geoJson)) {
                     matched = true;
                 }
@@ -99,6 +104,10 @@ export const findNearestKecamatan = (lat, lng, kecamatanList, thresholdMeters = 
                 const geom = geoJson.geometry;
                 if (geom.type === 'Polygon') coords = geom.coordinates[0][0];
                 else if (geom.type === 'MultiPolygon') coords = geom.coordinates[0][0][0];
+            } else if (geoJson.type === 'Polygon') {
+                coords = geoJson.coordinates[0][0];
+            } else if (geoJson.type === 'MultiPolygon') {
+                coords = geoJson.coordinates[0][0][0];
             }
 
             if (coords) {

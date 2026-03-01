@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const adminController = require('../controllers/adminController');
-const masterDataController = require('../controllers/masterDataController');
+const { adminController } = require('../controllers/admin');
+const { masterDataController } = require('../controllers/masterData');
 const { verifyToken } = require('../middlewares/authMiddleware');
+const { createAdminValidation, checkValidation } = require('../validators');
 
 // --- Admin Management ---
 router.get('/users', verifyToken, adminController.getAllAdmins);
-router.post('/users', verifyToken, adminController.createAdmin);
+router.post('/users', verifyToken, createAdminValidation, checkValidation, adminController.createAdmin);
 router.put('/users/:id', verifyToken, adminController.updateAdmin);
 // router.delete('/users/:id', verifyToken, adminController.deleteAdmin); // Optional
 
@@ -30,5 +31,23 @@ router.get('/master/kecamatan', verifyToken, masterDataController.kecamatan.getA
 router.post('/master/kecamatan', verifyToken, masterDataController.kecamatan.create);
 router.put('/master/kecamatan/:id', verifyToken, masterDataController.kecamatan.update);
 router.delete('/master/kecamatan/:id', verifyToken, masterDataController.kecamatan.delete);
+
+// --- Master Data: Tempat Kejadian ---
+router.get('/master/tempat-kejadian', verifyToken, masterDataController.tempatKejadian.getAll);
+router.post('/master/tempat-kejadian', verifyToken, masterDataController.tempatKejadian.create);
+router.put('/master/tempat-kejadian/:id', verifyToken, masterDataController.tempatKejadian.update);
+router.delete('/master/tempat-kejadian/:id', verifyToken, masterDataController.tempatKejadian.delete);
+
+// --- Master Data: Jenis Layanan ---
+router.get('/master/jenis-layanan', verifyToken, masterDataController.jenisLayanan.getAll);
+router.post('/master/jenis-layanan', verifyToken, masterDataController.jenisLayanan.create);
+router.put('/master/jenis-layanan/:id', verifyToken, masterDataController.jenisLayanan.update);
+router.delete('/master/jenis-layanan/:id', verifyToken, masterDataController.jenisLayanan.delete);
+
+// --- Master Data: Hubungan Korban ---
+router.get('/master/hubungan-korban', verifyToken, masterDataController.hubunganKorban.getAll);
+router.post('/master/hubungan-korban', verifyToken, masterDataController.hubunganKorban.create);
+router.put('/master/hubungan-korban/:id', verifyToken, masterDataController.hubunganKorban.update);
+router.delete('/master/hubungan-korban/:id', verifyToken, masterDataController.hubunganKorban.delete);
 
 module.exports = router;

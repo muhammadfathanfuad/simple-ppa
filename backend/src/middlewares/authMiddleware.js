@@ -2,9 +2,13 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey123';
 
 const verifyToken = (req, res, next) => {
-  // Ambil token dari header Authorization (format: Bearer <token>)
+  // Ambil token dari header Authorization (format: Bearer <token>) atau dari query parameter
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  let token = authHeader && authHeader.split(' ')[1];
+
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
 
   if (!token) {
     return res.status(401).json({ message: 'Akses ditolak, token tidak ditemukan' });
@@ -16,7 +20,7 @@ const verifyToken = (req, res, next) => {
     req.admin = decoded;
     next(); // Lanjut ke controller berikutnya
   } catch (error) {
-    return res.status(403).json({ message: 'Token tidak valid atau sudah kadaluwarsa' });
+    return res.status(401).json({ message: 'Token tidak valid atau sudah kadaluwarsa' });
   }
 };
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { laporanService } from '../services';
 
 const CheckStatus = () => {
     const [ticketId, setTicketId] = useState('');
@@ -30,14 +31,14 @@ const CheckStatus = () => {
     };
 
     const getTimeline = (data) => {
-        const status = data.statusLaporan ? data.statusLaporan.toLowerCase() : '';
+        const status = (data.status || data.statusLaporan) ? (data.status || data.statusLaporan).toLowerCase() : '';
         const logs = data.logStatus || [];
 
         // Helper to find log for a specific status
         const getLog = (targetStatus) => logs.find(l => l.statusBaru === targetStatus);
 
-        const createdDate = new Date(data.dibuatPada).toLocaleString('id-ID');
-        const updatedDate = data.diperbaruiPada ? new Date(data.diperbaruiPada).toLocaleString('id-ID') : '-';
+        const createdDate = new Date(data.created_at || data.dibuatPada).toLocaleString('id-ID');
+        const updatedDate = (data.updated_at || data.diperbaruiPada) ? new Date(data.updated_at || data.diperbaruiPada).toLocaleString('id-ID') : '-';
 
         if (status === 'ditolak') {
             const logDitolak = getLog('ditolak');
@@ -66,25 +67,25 @@ const CheckStatus = () => {
                 date: logMenunggu ? new Date(logMenunggu.dibuatPada).toLocaleString('id-ID') : createdDate,
                 status: 'Laporan Diterima',
                 active: currentLevel >= 0,
-                note: currentLevel === 0 ? logMenunggu?.catatanPerubahan : null
+                note: logMenunggu?.catatanPerubahan
             },
             {
                 date: logVerifikasi ? new Date(logVerifikasi.dibuatPada).toLocaleString('id-ID') : (currentLevel >= 1 ? updatedDate : '-'),
                 status: 'Verifikasi Data',
                 active: currentLevel >= 1,
-                note: currentLevel === 1 ? logVerifikasi?.catatanPerubahan : null
+                note: logVerifikasi?.catatanPerubahan
             },
             {
                 date: logProses ? new Date(logProses.dibuatPada).toLocaleString('id-ID') : (currentLevel >= 2 ? updatedDate : '-'),
                 status: 'Tindak Lanjut / Proses',
                 active: currentLevel >= 2,
-                note: currentLevel === 2 ? logProses?.catatanPerubahan : null
+                note: logProses?.catatanPerubahan
             },
             {
                 date: logSelesai ? new Date(logSelesai.dibuatPada).toLocaleString('id-ID') : (data.selesaiPada ? new Date(data.selesaiPada).toLocaleString('id-ID') : (currentLevel === 3 ? updatedDate : '-')),
                 status: 'Selesai',
                 active: currentLevel === 3,
-                note: currentLevel === 3 ? logSelesai?.catatanPerubahan : null
+                note: logSelesai?.catatanPerubahan
             }
         ];
     };
@@ -103,31 +104,20 @@ const CheckStatus = () => {
         setStatusData(null);
 
         try {
-            const response = await fetch(`http://localhost:5000/api/laporan/status/${cleanTicketId}`);
+            const response = await laporanService.checkLaporanStatus(cleanTicketId);
+            const resData = response.data || response;
 
-            // Check if response is JSON
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("Respon server tidak valid (bukan JSON).");
-            }
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Map backend response to frontend structure
-                setStatusData({
-                    id: data.kodeLaporan,
-                    status: data.statusLaporan,
-                    date: new Date(data.dibuatPada).toLocaleDateString('id-ID'),
-                    description: 'Pantau terus status laporan Anda disini.',
-                    timeline: getTimeline(data)
-                });
-            } else {
-                setError(data.message || 'ID Laporan tidak ditemukan.');
-            }
+            // Map backend response to frontend structure
+            setStatusData({
+                id: resData.kode_laporan || resData.kodeLaporan,
+                status: resData.status || resData.statusLaporan,
+                date: new Date(resData.created_at || resData.dibuatPada).toLocaleDateString('id-ID'),
+                description: 'Pantau terus status laporan Anda disini.',
+                timeline: getTimeline(resData)
+            });
         } catch (err) {
             console.error("Check Status Error:", err);
-            setError('Terjadi kesalahan penulisan tiket atau ID tidak valid.');
+            setError(err.message || 'ID Laporan tidak ditemukan.');
         } finally {
             setLoading(false);
         }
@@ -208,9 +198,10 @@ const CheckStatus = () => {
                                             <div className={`transition-all ${item.active ? 'opacity-100' : 'opacity-50 grayscale'}`}>
                                                 <h3 className={`text-lg font-bold ${item.color || (item.active ? 'text-teal-700' : 'text-slate-600')}`}>{item.status}</h3>
                                                 <p className="text-slate-500 text-sm mb-1">{item.date}</p>
-                                                {item.note && (
-                                                    <div className="bg-yellow-50 border border-yellow-100 p-2 rounded-lg text-xs text-yellow-800 mt-1 max-w-md">
-                                                        <span className="font-semibold block mb-0.5">{item.note}</span>
+                                                {item.active && (
+                                                    <div className="bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-xs mt-2 max-w-md">
+                                                        <span className="font-semibold text-slate-700 block mb-1">Catatan Admin:</span>
+                                                        <span className="text-slate-600 italic block leading-relaxed">{item.note ? `"${item.note}"` : "-"}</span>
                                                     </div>
                                                 )}
                                             </div>

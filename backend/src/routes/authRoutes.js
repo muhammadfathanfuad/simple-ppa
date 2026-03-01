@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController');
+const { authController } = require('../controllers/auth');
 const { verifyToken } = require('../middlewares/authMiddleware');
+const { loginValidation, updateProfileValidation, checkValidation } = require('../validators');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -34,8 +35,10 @@ const upload = multer({
     }
 });
 
-router.post('/login', authController.login);
+const { authLimiter } = require('../middlewares/rateLimiter');
+
+router.post('/login', authLimiter, loginValidation, checkValidation, authController.login);
 router.get('/me', verifyToken, authController.getMe);
-router.put('/profile', verifyToken, upload.single('fotoProfil'), authController.updateProfile);
+router.put('/profile', verifyToken, updateProfileValidation, checkValidation, upload.single('fotoProfil'), authController.updateProfile);
 
 module.exports = router;

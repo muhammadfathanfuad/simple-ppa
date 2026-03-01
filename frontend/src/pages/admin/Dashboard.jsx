@@ -15,6 +15,7 @@ import {
     BarElement
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
+import { dashboardService } from '../../services';
 
 ChartJS.register(
     CategoryScale,
@@ -59,9 +60,8 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch('http://localhost:5000/api/dashboard/stats');
-                const data = await response.json();
-                setStats(data);
+                const data = await dashboardService.getDashboardStats();
+                setStats(data.data || data);
             } catch (error) {
                 console.error("Failed to fetch dashboard stats:", error);
             } finally {
@@ -382,7 +382,7 @@ const Dashboard = () => {
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
 
-                            {stats.regions.map((region) => (
+                            {stats?.regions?.map((region) => (
                                 <React.Fragment key={region.id}>
                                     {/* Render GeoJSON if available */}
                                     {/* Render GeoJSON if available */}

@@ -10,5 +10,9 @@ backend_error.log
 debug_check_reports.js
 debug_report.js
 debug_timeline_logic.js
+fetch_detail.js
+query_db.js
+query_db2.js
 read_excel_structure.py
-
+test_prisma.js
+verify_backend.sh

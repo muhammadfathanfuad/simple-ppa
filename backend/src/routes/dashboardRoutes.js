@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const dashboardController = require('../controllers/dashboardController');
+const { dashboardController } = require('../controllers/dashboard');
+const { verifyToken } = require('../middlewares/authMiddleware');
 
-// Public route for now, can be protected later
-router.get('/stats', dashboardController.getDashboardStats);
+// Protected route
+router.get('/stats', verifyToken, dashboardController.getDashboardStats);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PelaporForm = ({ formData, handleChange }) => {
+const PelaporForm = ({ formData, handleChange, hubunganKorbanList }) => {
     return (
         <div id="identitas-pelapor" className="border-t border-slate-100 pt-4 scroll-mt-[100px]">
             <h3 className="text-lg font-bold text-slate-800 mb-4 sticky top-[100px] bg-white z-10 py-2 border-b border-slate-100 shadow-sm px-2 -mx-2 rounded">I. Identitas Pelapor</h3>
@@ -34,7 +34,35 @@ const PelaporForm = ({ formData, handleChange }) => {
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Hubungan dengan Korban</label>
-                    <input type="text" name="hubunganKorban" value={formData.hubunganKorban} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                    <select
+                        name="hubunganKorban"
+                        value={formData.hubunganKorban || ''}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    >
+                        <option value="">Pilih Hubungan</option>
+                        {hubunganKorbanList?.map((item) => (
+                            <option key={item.idHubungan} value={item.namaHubungan}>{item.namaHubungan}</option>
+                        ))}
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                    {formData.hubunganKorban === 'Lainnya' && (
+                        <div className="mt-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Sebutkan Hubungan Lainnya</label>
+                            <input
+                                type="text"
+                                name="hubunganKorbanLainnya"
+                                value={formData.hubunganKorbanLainnya || ''}
+                                onChange={handleChange}
+                                placeholder="Masukkan hubungan lainnya..."
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                            />
+                        </div>
+                    )}
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Hubungan dengan Terlapor</label>
+                    <input type="text" name="hubunganTerlaporPelapor" value={formData.hubunganTerlaporPelapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>
             </div>
         </div>

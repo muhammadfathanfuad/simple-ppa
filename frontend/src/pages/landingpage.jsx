@@ -126,10 +126,22 @@ const Utama = () => {
             <p className="text-lg text-slate-600">Mudah, Cepat, dan Transparan.</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <StepCard number="01" title="Isi Formulir" desc="Lengkapi data kronologi dan bukti pendukung." />
-            <StepCard number="02" title="Dapat Tiket" desc="Simpan Kode Tiket untuk memantau proses." />
-            <StepCard number="03" title="Penanganan" desc="Tim kami akan memverifikasi dan menindaklanjuti." />
+          <div className="flex flex-wrap justify-center gap-6">
+            <div className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(20%-20px)] flex">
+              <StepCard number="01" title="Isi Formulir" desc="Lengkapi data kronologi dan bukti pendukung." />
+            </div>
+            <div className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(20%-20px)] flex">
+              <StepCard number="02" title="Dapat Tiket" desc="Simpan Kode Tiket untuk memantau proses." />
+            </div>
+            <div className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(20%-20px)] flex">
+              <StepCard number="03" title="Verifikasi" desc="Tim DP3A memvalidasi laporan Anda (Maks. 1x24 Jam)." />
+            </div>
+            <div className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(20%-20px)] flex">
+              <StepCard number="04" title="Tindak Lanjut" desc="Proses pendampingan atau tindakan oleh tim ahli." />
+            </div>
+            <div className="w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] xl:w-[calc(20%-20px)] flex">
+              <StepCard number="05" title="Selesai" desc="Laporan selesai ditangani." />
+            </div>
           </div>
         </div>
       </section>
@@ -165,14 +177,14 @@ const Utama = () => {
             <div>
               <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-8">Hubungi Kami</h2>
               <div className="space-y-6">
-                <ContactItem icon="bi-geo-alt-fill" title="Alamat Kantor" desc="Jl. Balai Kota No. 1, Kota Kendari" />
+                <ContactItem icon="bi-geo-alt-fill" title="Alamat Kantor" desc="2G5M+286, Kambu, Kec. Kambu, Kota Kendari, Sulawesi Tenggara 93231" />
                 <ContactItem icon="bi-telephone-fill" title="Hotline / WhatsApp" desc="+62 811-XXXX-XXXX" />
                 <ContactItem icon="bi-envelope-fill" title="Email Resmi" desc="dp3a@kendarikota.go.id" />
               </div>
             </div>
             <div className="h-80 lg:h-auto bg-slate-200 rounded-3xl overflow-hidden shadow-lg">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d127267.57563143525!2d122.502964!3d-3.972201!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2d98f2b380000001%3A0x6d8b9f1d015c9d1c!2sKota%20Kendari%2C%20Sulawesi%20Tenggara!5e0!3m2!1sid!2sid!4v1700000000000"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1990.0679765104687!2d122.53199163845858!3d-3.992452098995306!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x2d988d546c5357ab%3A0x45cc86333019b654!2sDinas%20Pemberdayaan%20Perempuan%20%26%20Perlindungan%20Anak%20Kota%20Kendari!5e0!3m2!1sid!2sid!4v1771940803923!5m2!1sid!2sid"
                 className="w-full h-full border-0"
                 allowFullScreen=""
                 loading="lazy"
@@ -194,7 +206,7 @@ const Utama = () => {
 
 const EduCard = ({ img, title, desc }) => (
   <div className="group bg-white rounded-3xl p-6 border border-slate-100 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-    <div className="h-48 overflow-hidden rounded-2xl mb-6">
+    <div className="w-full aspect-video overflow-hidden rounded-2xl mb-6">
       <img src={img} alt={title} className="w-full h-full object-cover transform group-hover:scale-110 transition duration-500" />
     </div>
     <h3 className="text-2xl font-bold text-teal-800 mb-2">{title}</h3>
@@ -203,10 +215,14 @@ const EduCard = ({ img, title, desc }) => (
 );
 
 const StepCard = ({ number, title, desc }) => (
-  <div className="bg-white p-8 rounded-3xl shadow-md border-b-4 border-teal-500 hover:bg-teal-50 transition-colors">
-    <div className="text-5xl font-bold text-slate-200 mb-4">{number}</div>
-    <h3 className="text-xl font-bold text-slate-800 mb-2">{title}</h3>
-    <p className="text-slate-600">{desc}</p>
+  <div className="relative w-full bg-white p-8 rounded-3xl shadow-lg border border-slate-100 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 group overflow-hidden flex flex-col">
+    <div className="absolute top-0 right-0 w-32 h-32 bg-teal-50 rounded-bl-full -z-10 group-hover:scale-110 group-hover:bg-teal-100/50 transition-all duration-500"></div>
+    <div className="absolute top-0 left-0 w-1.5 h-0 group-hover:h-full bg-gradient-to-b from-teal-400 to-teal-600 transition-all duration-500 rounded-l-3xl"></div>
+    <div className="text-6xl font-black text-slate-100 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-br group-hover:from-teal-400 group-hover:to-teal-600 transition-all duration-300 mb-4 -ml-2 drop-shadow-sm">
+      {number}
+    </div>
+    <h3 className="text-xl font-bold text-slate-800 mb-3 group-hover:text-teal-700 transition-colors">{title}</h3>
+    <p className="text-slate-600 leading-relaxed text-sm flex-grow">{desc}</p>
   </div>
 );
 

@@ -90,6 +90,21 @@ const Sidebar = ({ isOpen = true, setIsOpen }) => {
                 {!isOpen && <div className="h-px bg-slate-800 my-2 mx-2 hidden md:block"></div>}
 
                 <NavLink
+                    to="/admin/rekapitulasi"
+                    end
+                    onClick={handleLinkClick}
+                    className={({ isActive }) =>
+                        `flex items-center ${isOpen ? 'gap-3 px-4' : 'justify-center md:px-2 px-4 gap-3'} py-3 rounded-lg transition-colors overflow-hidden whitespace-nowrap ${isActive
+                            ? 'bg-teal-600 text-white shadow-lg'
+                            : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                        }`
+                    }
+                >
+                    <i className="bi bi-clipboard-data text-lg flex-shrink-0"></i>
+                    <span className={`font-medium ${!isOpen ? 'md:hidden' : 'block'}`}>Rekapitulasi Data</span>
+                </NavLink>
+
+                <NavLink
                     to="/admin/laporan"
                     end
                     onClick={handleLinkClick}

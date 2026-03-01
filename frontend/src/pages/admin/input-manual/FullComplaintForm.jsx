@@ -19,6 +19,9 @@ const FullComplaintForm = () => {
         jenisKasusList,
         bentukKekerasanList,
         kecamatanList,
+        jenisLayananList,
+        tempatKejadianList,
+        hubunganKorbanList,
         formType,
         setFormType,
         handleChange,
@@ -219,11 +222,11 @@ const FullComplaintForm = () => {
                             </div>
                         </div>
 
-                        <PelaporForm formData={formData} handleChange={handleChange} />
+                        <PelaporForm formData={formData} handleChange={handleChange} hubunganKorbanList={hubunganKorbanList} />
 
-                        <KorbanForm formData={formData} handleChange={handleChange} formType={formType} />
+                        <KorbanForm formData={formData} handleChange={handleChange} formType={formType} hubunganKorbanList={hubunganKorbanList} />
 
-                        <TerlaporForm formData={formData} handleChange={handleChange} />
+                        <TerlaporForm formData={formData} handleChange={handleChange} hubunganKorbanList={hubunganKorbanList} />
 
                         <KasusForm
                             formData={formData}
@@ -231,6 +234,8 @@ const FullComplaintForm = () => {
                             jenisKasusList={jenisKasusList}
                             bentukKekerasanList={bentukKekerasanList}
                             kecamatanList={kecamatanList}
+                            jenisLayananList={jenisLayananList}
+                            tempatKejadianList={tempatKejadianList}
                         />
 
                         <TraffickingForm formData={formData} handleChange={handleChange} />

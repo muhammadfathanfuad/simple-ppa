@@ -10,6 +10,7 @@ import Footer from './components/Footer';
 // ... imports
 import AdminLayout from './layouts/AdminLayout';
 import Dashboard from './pages/admin/Dashboard';
+import RekapitulasiData from './pages/admin/RekapitulasiData';
 import ReportList from './pages/admin/ReportList';
 import FullComplaintForm from './pages/admin/input-manual/FullComplaintForm';
 import Settings from './pages/admin/Settings';
@@ -30,6 +31,7 @@ function App() {
         <Route path="/admin" element={<ProtectedRoute />}>
           <Route element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
+            <Route path="rekapitulasi" element={<RekapitulasiData />} />
             <Route path="laporan" element={<ReportList />} />
             <Route path="laporan/baru" element={<FullComplaintForm />} />
             <Route path="laporan/:id/lengkap" element={<FullComplaintForm />} />

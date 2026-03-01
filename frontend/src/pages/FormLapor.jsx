@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { findKecamatanByLocation, findNearestKecamatan } from '../utils/geometry';
+import { laporanService } from '../services';
 import Swal from 'sweetalert2';
 
 const FormLapor = () => {
@@ -35,19 +36,13 @@ const FormLapor = () => {
         // Fetch Master Data
         const fetchData = async () => {
             try {
-                const [kecRes, kasusRes] = await Promise.all([
-                    fetch('http://localhost:5000/api/laporan/master/kecamatan'),
-                    fetch('http://localhost:5000/api/laporan/master/jenis-kasus')
+                const [kecData, kasusData] = await Promise.all([
+                    laporanService.getKecamatan(),
+                    laporanService.getJenisKasus()
                 ]);
 
-                if (kecRes.ok) {
-                    const kecData = await kecRes.json();
-                    setKecamatanList(kecData);
-                }
-                if (kasusRes.ok) {
-                    const kasusData = await kasusRes.json();
-                    setJenisKasusList(kasusData);
-                }
+                setKecamatanList(kecData.data || kecData || []);
+                setJenisKasusList(kasusData.data || kasusData || []);
             } catch (err) {
                 console.error("Error fetching master data:", err);
             }
@@ -210,15 +205,18 @@ const FormLapor = () => {
             pelapor: {
                 namaPelapor: formData.namaPelapor,
                 noTelpPelapor: formData.noHpPelapor,
-                alamatPelapor: 'Alamat Pelapor',
-                tanggalLahir: null
+                alamatPelapor: formData.alamatKorban || 'Belum Diisi',
+                tanggalLahir: null,
+                hubunganDenganKorban: formData.hubungan,
+                statusPelapor: formData.hubungan
             },
             korban: {
                 namaKorban: formData.namaKorban || formData.namaPelapor,
                 alamatKorban: formData.alamatKorban || '',
                 nikKorban: '',
                 jenisKelamin: formData.jenisKelaminKorban || null,
-                tanggalLahir: null
+                tanggalLahir: null,
+                nomorTelepon: formData.noHpKorban || formData.noHpPelapor
             },
             laporan: {
                 idKecamatan: formData.idKecamatan,
@@ -270,24 +268,12 @@ const FormLapor = () => {
             return;
         }
 
-        // Append JSON string
-        data.append('data', JSON.stringify(payload));
-
-        // Files
-        files.forEach(file => {
-            data.append('bukti', file);
-        });
-
         try {
-            const response = await fetch('http://localhost:5000/api/laporan/submit', {
-                method: 'POST',
-                body: data
-            });
+            // laporanService expects payload and files arrays
+            const result = await laporanService.submitLaporan(payload, files);
 
-            const result = await response.json();
-
-            if (response.ok) {
-                setTicket(result.nomor_tiket);
+            if (result.success || result.data) {
+                setTicket(result.kode_laporan || result.data?.kode_laporan || result.data?.nomor_tiket || result.nomor_tiket);
                 setStep(4);
             } else {
                 Swal.fire('Gagal', result.message || 'Gagal mengirim laporan', 'error');

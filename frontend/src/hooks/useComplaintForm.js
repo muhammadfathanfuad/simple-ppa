@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { laporanService } from '../services';
 import Swal from 'sweetalert2';
 
 const useComplaintForm = (id) => {
@@ -9,6 +10,9 @@ const useComplaintForm = (id) => {
     const [jenisKasusList, setJenisKasusList] = useState([]);
     const [bentukKekerasanList, setBentukKekerasanList] = useState([]);
     const [kecamatanList, setKecamatanList] = useState([]);
+    const [jenisLayananList, setJenisLayananList] = useState([]);
+    const [tempatKejadianList, setTempatKejadianList] = useState([]);
+    const [hubunganKorbanList, setHubunganKorbanList] = useState([]);
     const [formType, setFormType] = useState('Anak'); // 'Anak' or 'Perempuan'
 
     const [formData, setFormData] = useState({
@@ -27,6 +31,8 @@ const useComplaintForm = (id) => {
         noTelpPelapor: '',
         pekerjaanPelapor: '',
         hubunganKorban: '',
+        hubunganKorbanLainnya: '', // Added for "Lainnya" input
+        hubunganTerlaporPelapor: '',
 
         // Korban
         namaKorban: '',
@@ -49,9 +55,9 @@ const useComplaintForm = (id) => {
         pekerjaanAyah: '',
         pekerjaanIbu: '',
 
-        // Lainnya
         jumlahSaudaraKorban: '',
         hubunganTerlapor: '',
+        hubunganTerlaporLainnya: '', // Added for "Lainnya" input
 
         disabilitasKorban: false,
         jenisDisabilitasKorban: '',
@@ -61,6 +67,8 @@ const useComplaintForm = (id) => {
         ttlTerlapor: '', // Combined Place, Date
         alamatTerlapor: '', // desa, kelurahan, kecamatan, kabupaten, kota, provinsi
         noTelpTerlapor: '',
+        jkTerlapor: 'Laki-laki',
+        kewarganegaraanTerlapor: 'WNI',
         pendidikanTerlapor: '',
         agamaTerlapor: 'Islam',
         pekerjaanTerlapor: '',
@@ -69,7 +77,9 @@ const useComplaintForm = (id) => {
         alamatOrtuWaliTerlapor: '',
         pekerjaanOrtuTerlapor: '',
         jumlahSaudaraTerlapor: '',
+        jumlahAnakTerlapor: '',
         hubunganKorbanTerlapor: '',
+        hubunganKorbanTerlaporLainnya: '', // Added for "Lainnya" input
 
         // Kasus
         gambaranKasus: '',
@@ -79,6 +89,7 @@ const useComplaintForm = (id) => {
         waktuKejadian: '',
         tempatKejadian: '',
         lokasiKejadianPerkara: '',
+        lokasiKejadianPerkaraLainnya: '',
         harapanKorban: '',
         layananDibutuhkan: '',
         rujukanDari: '',
@@ -103,24 +114,21 @@ const useComplaintForm = (id) => {
 
     const fetchMasterData = async () => {
         try {
-            const [resKasus, resKekerasan, resKecamatan] = await Promise.all([
-                fetch('http://localhost:5000/api/laporan/master/jenis-kasus'),
-                fetch('http://localhost:5000/api/laporan/master/bentuk-kekerasan'),
-                fetch('http://localhost:5000/api/laporan/master/kecamatan')
+            const [kasusData, kekerasanData, kecamatanData, layananData, tempatData, hubunganData] = await Promise.all([
+                laporanService.getJenisKasus(),
+                laporanService.getBentukKekerasan(),
+                laporanService.getKecamatan(),
+                laporanService.getJenisLayanan(),
+                laporanService.getTempatKejadian(),
+                laporanService.getHubunganKorban()
             ]);
 
-            if (resKasus.ok) {
-                const data = await resKasus.json();
-                setJenisKasusList(data);
-            }
-            if (resKekerasan.ok) {
-                const data = await resKekerasan.json();
-                setBentukKekerasanList(data);
-            }
-            if (resKecamatan.ok) {
-                const data = await resKecamatan.json();
-                setKecamatanList(data);
-            }
+            setJenisKasusList(kasusData.data || kasusData || []);
+            setBentukKekerasanList(kekerasanData.data || kekerasanData || []);
+            setKecamatanList(kecamatanData.data || kecamatanData || []);
+            setJenisLayananList(layananData.data || layananData || []);
+            setTempatKejadianList(tempatData.data || tempatData || []);
+            setHubunganKorbanList(hubunganData.data || hubunganData || []);
         } catch (error) {
             console.error("Error fetching master data:", error);
         }
@@ -128,21 +136,47 @@ const useComplaintForm = (id) => {
 
     const fetchReportData = async (reportId) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/laporan/detail/${reportId}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            const data = await response.json();
+            const [response, tempatRes] = await Promise.all([
+                laporanService.getLaporanDetail(reportId),
+                laporanService.getTempatKejadian()
+            ]);
+            const data = response.data || response;
+            const tempatList = tempatRes.data || tempatRes || [];
 
             if (data) {
-                // Helper to format TTL for display (e.g., "Muna, 2023-01-01" or just "Muna")
                 const formatTTL = (tempat, tanggal) => {
                     if (!tempat && !tanggal) return '';
                     const datePart = tanggal ? tanggal.split('T')[0] : '';
                     if (tempat && datePart) return `${tempat}, ${datePart}`;
                     return tempat || datePart;
                 };
+
+                const parseEnumToUI = (val, type) => {
+                    if (!val) return '';
+                    if (type === 'Pendidikan') {
+                        if (val === 'Tidak_Sekolah') return 'Tidak Sekolah';
+                        if (val === 'Perguruan_Tinggi') return 'Perguruan Tinggi';
+                        if (val === 'PAUD_TK') return 'PAUD/TK';
+                    }
+                    if (type === 'JenisKelamin') {
+                        if (val === 'Laki_laki') return 'Laki-laki';
+                    }
+                    if (type === 'Pekerjaan') {
+                        if (val === 'Pelajar_Mahasiswa') return 'Pelajar/Mahasiswa';
+                        if (val === 'TNI_POLRI') return 'TNI/POLRI';
+                        if (val === 'Ibu_Rumah_Tangga') return 'Ibu Rumah Tangga';
+                    }
+                    if (type === 'StatusPelapor') {
+                        if (val === 'Korban_Langsung') return 'Korban Langsung';
+                    }
+                    return val;
+                };
+
+                const isLainnyaTempat = data.lokasiKejadianPerkara && !tempatList.find(t => t.namaTempatKejadian === data.lokasiKejadianPerkara);
+
+                const isLainnyaHubunganPelapor = data.pelapor?.hubunganDenganKorban && !hubunganData.data?.find(h => h.namaHubungan === data.pelapor?.hubunganDenganKorban);
+                const isLainnyaHubunganKorban = data.korban?.hubunganDenganTerlapor && !hubunganData.data?.find(h => h.namaHubungan === data.korban?.hubunganDenganTerlapor);
+                const isLainnyaHubunganTerlapor = data.terlapor?.hubunganDenganKorban && !hubunganData.data?.find(h => h.namaHubungan === data.terlapor?.hubunganDenganKorban);
 
                 setFormData(prev => ({
                     ...prev,
@@ -159,29 +193,31 @@ const useComplaintForm = (id) => {
                     namaPelapor: data.pelapor?.nama || '',
                     alamatPelapor: data.pelapor?.alamatLengkap || '',
                     noTelpPelapor: data.pelapor?.nomorWhatsapp || '',
-                    pekerjaanPelapor: data.pelapor?.pekerjaan || '',
+                    pekerjaanPelapor: data.pelapor?.pekerjaan === 'Lainnya' ? (data.pelapor?.pekerjaanLainnya || 'Lainnya') : parseEnumToUI(data.pelapor?.pekerjaan, 'Pekerjaan'),
                     pekerjaanPelaporLainnya: data.pelapor?.pekerjaanLainnya || '',
                     agamaPelapor: data.pelapor?.agama || '',
                     agamaPelaporLainnya: data.pelapor?.agamaLainnya || '',
-                    hubunganKorban: data.pelapor?.hubunganDenganKorban || '',
-                    statusPelapor: data.pelapor?.statusPelapor || '',
+                    hubunganKorban: isLainnyaHubunganPelapor ? 'Lainnya' : (data.pelapor?.hubunganDenganKorban || ''),
+                    hubunganKorbanLainnya: isLainnyaHubunganPelapor ? data.pelapor?.hubunganDenganKorban : '',
+                    hubunganTerlaporPelapor: data.pelapor?.hubunganDenganTerlapor || '',
+                    statusPelapor: parseEnumToUI(data.pelapor?.statusPelapor, 'StatusPelapor'),
                     statusPelaporLainnya: data.pelapor?.statusPelaporLainnya || '',
-                    jkPelapor: 'Laki-laki', // Default as it's not in schema for Pelapor
+                    jkPelapor: parseEnumToUI(data.pelapor?.jenisKelamin, 'JenisKelamin') || 'Laki-laki',
                     ttlPelapor: formatTTL(data.pelapor?.tempatLahir, data.pelapor?.tanggalLahir),
 
                     // Korban
                     namaKorban: data.korban?.namaLengkap || '',
                     nikKorban: data.korban?.nik || '',
                     kewarganegaraanKorban: data.korban?.kewarganegaraan || 'WNI',
-                    jkKorban: data.korban?.jenisKelamin || 'Perempuan',
+                    jkKorban: parseEnumToUI(data.korban?.jenisKelamin, 'JenisKelamin') || 'Perempuan',
                     ttlKorban: formatTTL(data.korban?.tempatLahir, data.korban?.tanggalLahir),
                     agamaKorban: data.korban?.agama || 'Islam',
                     agamaKorbanLainnya: data.korban?.agamaLainnya || '',
                     alamatKorban: data.korban?.alamatLengkap || '',
                     noTelpKorban: data.korban?.nomorWhatsapp || data.korban?.nomorTelepon || '',
-                    pekerjaanKorban: data.korban?.pekerjaan || '',
+                    pekerjaanKorban: data.korban?.pekerjaan === 'Lainnya' ? (data.korban?.pekerjaanLainnya || 'Lainnya') : parseEnumToUI(data.korban?.pekerjaan, 'Pekerjaan'),
                     pekerjaanKorbanLainnya: data.korban?.pekerjaanLainnya || '',
-                    pendidikanKorban: data.korban?.pendidikan || '',
+                    pendidikanKorban: parseEnumToUI(data.korban?.pendidikan, 'Pendidikan'),
                     pendidikanKorbanLainnya: data.korban?.pendidikanLainnya || '',
                     statusPerkawinanKorban: data.korban?.statusPerkawinan || '',
                     jumlahAnakKorban: data.korban?.jumlahAnak || '',
@@ -195,7 +231,8 @@ const useComplaintForm = (id) => {
 
                     // Lainnya (Korban continued)
                     jumlahSaudaraKorban: data.korban?.jumlahSaudara || '',
-                    hubunganTerlapor: data.korban?.hubunganDenganTerlapor || '',
+                    hubunganTerlapor: isLainnyaHubunganKorban ? 'Lainnya' : (data.korban?.hubunganDenganTerlapor || ''),
+                    hubunganTerlaporLainnya: isLainnyaHubunganKorban ? data.korban?.hubunganDenganTerlapor : '',
                     disabilitasKorban: data.korban?.disabilitas || false,
                     jenisDisabilitasKorban: data.korban?.jenisDisabilitas || '',
 
@@ -204,7 +241,9 @@ const useComplaintForm = (id) => {
                     ttlTerlapor: formatTTL(data.terlapor?.tempatLahir, data.terlapor?.tanggalLahir),
                     alamatTerlapor: data.terlapor?.alamat || '',
                     noTelpTerlapor: data.terlapor?.nomorTelepon || '',
-                    pendidikanTerlapor: data.terlapor?.pendidikan || '',
+                    jkTerlapor: parseEnumToUI(data.terlapor?.jenisKelamin, 'JenisKelamin') || 'Laki-laki',
+                    kewarganegaraanTerlapor: data.terlapor?.kewarganegaraan || 'WNI',
+                    pendidikanTerlapor: parseEnumToUI(data.terlapor?.pendidikan, 'Pendidikan'),
                     agamaTerlapor: data.terlapor?.agama || 'Islam',
                     pekerjaanTerlapor: data.terlapor?.pekerjaan || '',
                     statusPerkawinanTerlapor: data.terlapor?.statusPerkawinan || '',
@@ -212,7 +251,9 @@ const useComplaintForm = (id) => {
                     alamatOrtuWaliTerlapor: data.terlapor?.alamatOrtuWali || '',
                     pekerjaanOrtuTerlapor: data.terlapor?.pekerjaanOrtu || '',
                     jumlahSaudaraTerlapor: data.terlapor?.jumlahSaudara || '',
-                    hubunganKorbanTerlapor: data.terlapor?.hubunganDenganKorban || '',
+                    jumlahAnakTerlapor: data.terlapor?.jumlahAnak || '',
+                    hubunganKorbanTerlapor: isLainnyaHubunganTerlapor ? 'Lainnya' : (data.terlapor?.hubunganDenganKorban || ''),
+                    hubunganKorbanTerlaporLainnya: isLainnyaHubunganTerlapor ? data.terlapor?.hubunganDenganKorban : '',
 
                     // Kasus
                     gambaranKasus: data.kronologiKejadian || '',
@@ -222,7 +263,8 @@ const useComplaintForm = (id) => {
                     tanggalKejadian: data.tanggalKejadian ? data.tanggalKejadian.split('T')[0] : '',
                     waktuKejadian: data.waktuKejadian ? new Date(data.waktuKejadian).toTimeString().slice(0, 5) : '',
                     tempatKejadian: data.lokasiLengkapKejadian || '',
-                    lokasiKejadianPerkara: data.lokasiKejadianPerkara || '',
+                    lokasiKejadianPerkara: isLainnyaTempat ? 'Lainnya' : (data.lokasiKejadianPerkara || ''),
+                    lokasiKejadianPerkaraLainnya: isLainnyaTempat ? data.lokasiKejadianPerkara : '',
                     harapanKorban: data.harapanKorban || '',
                     layananDibutuhkan: data.layananDibutuhkan || '',
                     rujukanDari: data.rujukanDari || '',
@@ -278,139 +320,142 @@ const useComplaintForm = (id) => {
             return { tempat, tanggal };
         };
 
-        const pelaporTTL = parseTTL(formData.ttlPelapor);
-        const korbanTTL = parseTTL(formData.ttlKorban);
-        const terlaporTTL = parseTTL(formData.ttlTerlapor);
+        // Enforce sync if Pelapor is Korban, before generating payload
+        let currentFormData = { ...formData };
+        const isKorbanLangsungSubmit = (hubunganVal) => {
+            if (!hubunganVal) return false;
+            const lower = hubunganVal.toLowerCase();
+            return lower.includes('korban') || lower.includes('diri sendiri') || lower === 'sendiri';
+        };
+
+        if (isKorbanLangsungSubmit(currentFormData.hubunganKorban)) {
+            currentFormData.namaKorban = currentFormData.namaPelapor || currentFormData.namaKorban;
+            currentFormData.jkKorban = currentFormData.jkPelapor || currentFormData.jkKorban;
+            currentFormData.ttlKorban = currentFormData.ttlPelapor || currentFormData.ttlKorban;
+            currentFormData.alamatKorban = currentFormData.alamatPelapor || currentFormData.alamatKorban;
+            currentFormData.noTelpKorban = currentFormData.noTelpPelapor || currentFormData.noTelpKorban;
+            currentFormData.pekerjaanKorban = currentFormData.pekerjaanPelapor || currentFormData.pekerjaanKorban;
+            currentFormData.pekerjaanKorbanLainnya = currentFormData.pekerjaanPelaporLainnya || currentFormData.pekerjaanKorbanLainnya;
+        }
+
+        const pelaporTTL = parseTTL(currentFormData.ttlPelapor);
+        const korbanTTL = parseTTL(currentFormData.ttlKorban);
+        const terlaporTTL = parseTTL(currentFormData.ttlTerlapor);
 
         const payload = {
             pelapor: {
-                nama: formData.namaPelapor,
-                alamatLengkap: formData.alamatPelapor,
+                nama: currentFormData.namaPelapor,
+                alamatLengkap: currentFormData.alamatPelapor,
                 tempatLahir: pelaporTTL.tempat,
                 tanggalLahir: pelaporTTL.tanggal,
-                nomorWhatsapp: formData.noTelpPelapor, // State uses noTelpPelapor
-                pekerjaan: formData.pekerjaanPelapor,
-                pekerjaanLainnya: formData.pekerjaanPelaporLainnya,
-                agama: formData.agamaPelapor, // ensure this is mapped if it's "Lainnya"
-                agamaLainnya: formData.agamaPelaporLainnya,
-                hubunganDenganKorban: formData.hubunganKorban,
-                statusPelapor: formData.statusPelapor,
-                statusPelaporLainnya: formData.statusPelaporLainnya,
-                jenisKelamin: formData.jkPelapor
+                nomorWhatsapp: currentFormData.noTelpPelapor, // State uses noTelpPelapor
+                pekerjaan: currentFormData.pekerjaanPelapor,
+                pekerjaanLainnya: currentFormData.pekerjaanPelaporLainnya,
+                agama: currentFormData.agamaPelapor, // ensure this is mapped if it's "Lainnya"
+                agamaLainnya: currentFormData.agamaPelaporLainnya,
+                hubunganDenganKorban: currentFormData.hubunganKorban === 'Lainnya' ? currentFormData.hubunganKorbanLainnya : currentFormData.hubunganKorban,
+                hubunganDenganTerlapor: currentFormData.hubunganTerlaporPelapor,
+                statusPelapor: currentFormData.statusPelapor,
+                statusPelaporLainnya: currentFormData.statusPelaporLainnya,
+                jenisKelamin: currentFormData.jkPelapor
             },
             korban: {
-                namaLengkap: formData.namaKorban,
-                nik: formData.nikKorban,
-                nomorWhatsapp: formData.noTelpKorban, // State uses noTelpKorban
-                alamatLengkap: formData.alamatKorban,
+                namaLengkap: currentFormData.namaKorban,
+                nik: currentFormData.nikKorban,
+                nomorWhatsapp: currentFormData.noTelpKorban, // State uses noTelpKorban
+                alamatLengkap: currentFormData.alamatKorban,
                 tempatLahir: korbanTTL.tempat,
                 tanggalLahir: korbanTTL.tanggal,
-                jenisKelamin: formData.jkKorban,
-                pendidikan: formData.pendidikanKorban,
-                pendidikanLainnya: formData.pendidikanKorbanLainnya,
-                pekerjaan: formData.pekerjaanKorban,
-                pekerjaanLainnya: formData.pekerjaanKorbanLainnya,
-                agama: formData.agamaKorban,
-                agamaLainnya: formData.agamaKorbanLainnya,
-                statusPerkawinan: formData.statusPerkawinanKorban,
-                disabilitas: formData.disabilitasKorban,
-                jenisDisabilitas: formData.jenisDisabilitasKorban,
-                nomorTelepon: formData.noTelpKorban,
-                jumlahAnak: formData.jumlahAnakKorban,
-                namaOrtuWali: formData.namaOrtuWali,
-                alamatOrtuWali: formData.alamatOrtuWali,
-                kewarganegaraanOrtuWali: formData.kewarganegaraanOrtuWali,
-                pekerjaanAyah: formData.pekerjaanAyah,
-                pekerjaanIbu: formData.pekerjaanIbu,
-                jumlahSaudara: formData.jumlahSaudaraKorban,
-                hubunganDenganTerlapor: formData.hubunganTerlapor,
+                jenisKelamin: currentFormData.jkKorban,
+                kewarganegaraan: currentFormData.kewarganegaraanKorban,
+                pendidikan: currentFormData.pendidikanKorban,
+                pendidikanLainnya: currentFormData.pendidikanKorbanLainnya,
+                pekerjaan: currentFormData.pekerjaanKorban,
+                pekerjaanLainnya: currentFormData.pekerjaanKorbanLainnya,
+                agama: currentFormData.agamaKorban,
+                agamaLainnya: currentFormData.agamaKorbanLainnya,
+                statusPerkawinan: currentFormData.statusPerkawinanKorban,
+                disabilitas: currentFormData.disabilitasKorban,
+                jenisDisabilitas: currentFormData.jenisDisabilitasKorban,
+                nomorTelepon: currentFormData.noTelpKorban,
+                jumlahAnak: currentFormData.jumlahAnakKorban,
+                namaOrtuWali: currentFormData.namaOrtuWali,
+                alamatOrtuWali: currentFormData.alamatOrtuWali,
+                kewarganegaraanOrtuWali: currentFormData.kewarganegaraanOrtuWali,
+                pekerjaanAyah: currentFormData.pekerjaanAyah,
+                pekerjaanIbu: currentFormData.pekerjaanIbu,
+                jumlahSaudara: currentFormData.jumlahSaudaraKorban,
+                hubunganDenganTerlapor: currentFormData.hubunganTerlapor === 'Lainnya' ? currentFormData.hubunganTerlaporLainnya : currentFormData.hubunganTerlapor,
             },
             terlapor: {
-                nama: formData.namaTerlapor,
+                nama: currentFormData.namaTerlapor,
                 tempatLahir: terlaporTTL.tempat,
                 tanggalLahir: terlaporTTL.tanggal,
-                alamat: formData.alamatTerlapor,
-                nomorTelepon: formData.noTelpTerlapor,
-                pendidikan: formData.pendidikanTerlapor,
-                agama: formData.agamaTerlapor,
-                pekerjaan: formData.pekerjaanTerlapor,
-                statusPerkawinan: formData.statusPerkawinanTerlapor,
-                namaOrtuWali: formData.namaOrtuWaliTerlapor,
-                alamatOrtuWali: formData.alamatOrtuWaliTerlapor,
-                pekerjaanOrtu: formData.pekerjaanOrtuTerlapor,
-                jumlahSaudara: formData.jumlahSaudaraTerlapor,
-                hubunganDenganKorban: formData.hubunganKorbanTerlapor,
+                jenisKelamin: currentFormData.jkTerlapor,
+                kewarganegaraan: currentFormData.kewarganegaraanTerlapor,
+                alamat: currentFormData.alamatTerlapor,
+                nomorTelepon: currentFormData.noTelpTerlapor,
+                pendidikan: currentFormData.pendidikanTerlapor,
+                agama: currentFormData.agamaTerlapor,
+                pekerjaan: currentFormData.pekerjaanTerlapor,
+                statusPerkawinan: currentFormData.statusPerkawinanTerlapor,
+                namaOrtuWali: currentFormData.namaOrtuWaliTerlapor,
+                alamatOrtuWali: currentFormData.alamatOrtuWaliTerlapor,
+                pekerjaanOrtu: currentFormData.pekerjaanOrtuTerlapor,
+                jumlahSaudara: currentFormData.jumlahSaudaraTerlapor,
+                jumlahAnak: currentFormData.jumlahAnakTerlapor,
+                hubunganDenganKorban: currentFormData.hubunganKorbanTerlapor === 'Lainnya' ? currentFormData.hubunganKorbanTerlaporLainnya : currentFormData.hubunganKorbanTerlapor,
             },
             trafficking: {
-                isTrafficking: formData.isTrafficking,
-                ruteTrafficking: formData.ruteTrafficking,
-                alatTransportasi: formData.alatTransportasi,
-                caraDigunakan: formData.caraDigunakan,
-                bentukEksploitasi: formData.bentukEksploitasi,
-                bentukPelanggaran: formData.bentukPelanggaran,
-                bentukKriminalisasi: formData.bentukKriminalisasi,
+                isTrafficking: currentFormData.isTrafficking,
+                ruteTrafficking: currentFormData.ruteTrafficking,
+                alatTransportasi: currentFormData.alatTransportasi,
+                caraDigunakan: currentFormData.caraDigunakan,
+                bentukEksploitasi: currentFormData.bentukEksploitasi,
+                bentukPelanggaran: currentFormData.bentukPelanggaran,
+                bentukKriminalisasi: currentFormData.bentukKriminalisasi,
             },
             laporan: {
-                tanggal: formData.tanggal,
-                idKecamatan: formData.idKecamatan,
-                idJenisKasus: formData.kategoriKasus,
-                idBentukKekerasan: formData.bentukKekerasan,
-                kronologiKejadian: formData.gambaranKasus,
-                tanggalKejadian: formData.tanggalKejadian,
-                waktuKejadian: formData.waktuKejadian,
-                lokasiLengkapKejadian: formData.tempatKejadian,
-                lokasiKejadianPerkara: formData.lokasiKejadianPerkara,
-                harapanKorban: formData.harapanKorban,
-                layananDibutuhkan: formData.layananDibutuhkan,
-                rujukanDari: formData.rujukanDari,
-                caraDatang: formData.caraDatang,
-                namaKlien: formData.namaKlien,
-                alamatKlien: formData.alamatKlien,
-                penerimaPengaduan: formData.penerimaPengaduan,
-                noRegistrasi: formData.noRegistrasi,
+                tanggal: currentFormData.tanggal,
+                idKecamatan: currentFormData.idKecamatan,
+                idJenisKasus: currentFormData.kategoriKasus,
+                idBentukKekerasan: currentFormData.bentukKekerasan,
+                kronologiKejadian: currentFormData.gambaranKasus,
+                tanggalKejadian: currentFormData.tanggalKejadian,
+                waktuKejadian: currentFormData.waktuKejadian,
+                lokasiLengkapKejadian: currentFormData.tempatKejadian,
+                lokasiKejadianPerkara: currentFormData.lokasiKejadianPerkara === 'Lainnya' ? currentFormData.lokasiKejadianPerkaraLainnya : currentFormData.lokasiKejadianPerkara,
+                harapanKorban: currentFormData.harapanKorban,
+                layananDibutuhkan: currentFormData.layananDibutuhkan,
+                rujukanDari: currentFormData.rujukanDari,
+                caraDatang: currentFormData.caraDatang,
+                namaKlien: currentFormData.namaKlien,
+                alamatKlien: currentFormData.alamatKlien,
+                penerimaPengaduan: currentFormData.penerimaPengaduan,
+                noRegistrasi: currentFormData.noRegistrasi,
             }
         };
 
         try {
-            const url = id
-                ? `http://localhost:5000/api/laporan/update/${id}`
-                : 'http://localhost:5000/api/laporan/submit';
-
-            const method = id ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                Swal.fire({
-                    title: 'Berhasil!',
-                    text: 'Laporan berhasil disimpan!',
-                    icon: 'success',
-                    confirmButtonColor: '#0d9488'
-                }).then(() => {
-                    navigate('/admin/laporan');
-                });
+            if (id) {
+                await laporanService.updateLaporan(id, payload);
             } else {
-                const errorData = await response.json();
-                Swal.fire({
-                    title: 'Gagal',
-                    text: `Gagal menyimpan laporan: ${errorData.message}`,
-                    icon: 'error',
-                    confirmButtonColor: '#0d9488'
-                });
-                console.error("Server Error Details:", errorData);
+                await laporanService.submitLaporanJson(payload);
             }
+
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'Laporan berhasil disimpan!',
+                icon: 'success',
+                confirmButtonColor: '#0d9488'
+            }).then(() => {
+                navigate('/admin/laporan');
+            });
         } catch (error) {
             console.error(error);
             Swal.fire({
-                title: 'Error',
-                text: 'Terjadi kesalahan saat menyimpan laporan.',
+                title: 'Gagal',
+                text: `Gagal menyimpan laporan: ${error.message}`,
                 icon: 'error',
                 confirmButtonColor: '#0d9488'
             });
@@ -421,10 +466,42 @@ const useComplaintForm = (id) => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        const val = type === 'checkbox' ? checked : value;
+
+        setFormData(prev => {
+            const newData = { ...prev, [name]: val };
+
+            // Auto-sync if Pelapor is also the Korban
+            const isKorbanLangsung = (hubunganVal) => {
+                if (!hubunganVal) return false;
+                const lower = hubunganVal.toLowerCase();
+                return lower.includes('korban') || lower.includes('diri sendiri') || lower === 'sendiri';
+            };
+
+            const currentHubungan = name === 'hubunganKorban' ? val : prev.hubunganKorban;
+
+            if (isKorbanLangsung(currentHubungan)) {
+                // Sync from Pelapor to Korban
+                if (name === 'namaPelapor') newData.namaKorban = val;
+                if (name === 'jkPelapor') newData.jkKorban = val;
+                if (name === 'ttlPelapor') newData.ttlKorban = val;
+                if (name === 'alamatPelapor') newData.alamatKorban = val;
+                if (name === 'noTelpPelapor') newData.noTelpKorban = val;
+                if (name === 'pekerjaanPelapor') newData.pekerjaanKorban = val;
+
+                // Also force sync if they just set the relationship to Korban
+                if (name === 'hubunganKorban' && isKorbanLangsung(val) && !isKorbanLangsung(prev.hubunganKorban)) {
+                    newData.namaKorban = prev.namaPelapor || '';
+                    newData.jkKorban = prev.jkPelapor || 'Perempuan';
+                    newData.ttlKorban = prev.ttlPelapor || '';
+                    newData.alamatKorban = prev.alamatPelapor || '';
+                    newData.noTelpKorban = prev.noTelpPelapor || '';
+                    newData.pekerjaanKorban = prev.pekerjaanPelapor || '';
+                }
+            }
+
+            return newData;
+        });
     };
 
     return {
@@ -434,6 +511,9 @@ const useComplaintForm = (id) => {
         jenisKasusList,
         bentukKekerasanList,
         kecamatanList,
+        jenisLayananList,
+        tempatKejadianList,
+        hubunganKorbanList,
         formType,
         setFormType,
         handleChange,

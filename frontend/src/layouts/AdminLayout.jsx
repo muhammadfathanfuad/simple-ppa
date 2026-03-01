@@ -60,7 +60,7 @@ const AdminLayout = () => {
             <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
             <div className="flex-1 flex flex-col overflow-hidden transition-all duration-300 w-full">
-                <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 shadow-sm sticky top-0 z-20">
+                <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-8 shadow-sm sticky top-0 z-40">
                     <div className="flex items-center gap-4">
                         <button
                             onClick={toggleSidebar}

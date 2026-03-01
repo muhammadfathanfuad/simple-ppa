@@ -1,6 +1,6 @@
 import React from 'react';
 
-const KasusForm = ({ formData, handleChange, jenisKasusList, bentukKekerasanList, kecamatanList = [] }) => {
+const KasusForm = ({ formData, handleChange, jenisKasusList, bentukKekerasanList, kecamatanList = [], jenisLayananList = [], tempatKejadianList = [] }) => {
     return (
         <div id="identitas-kasus" className="border-t border-slate-100 pt-4 scroll-mt-[100px]">
             <h3 className="text-lg font-bold text-slate-800 mb-4 sticky top-[100px] bg-white z-10 py-2 border-b border-slate-100 shadow-sm px-2 -mx-2 rounded">IV. Formulir Identifikasi Kasus</h3>
@@ -56,7 +56,19 @@ const KasusForm = ({ formData, handleChange, jenisKasusList, bentukKekerasanList
                     </div>
                     <div className="md:col-span-1">
                         <label className="block text-sm font-medium text-slate-700 mb-1">Lokasi Kejadian Perkara</label>
-                        <input type="text" name="lokasiKejadianPerkara" value={formData.lokasiKejadianPerkara || ''} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Detail lokasi kejadian" />
+                        <select name="lokasiKejadianPerkara" value={formData.lokasiKejadianPerkara || ''} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                            <option value="">Pilih Tempat Kejadian</option>
+                            {tempatKejadianList.map((item) => (
+                                <option key={item.idTempatKejadian} value={item.namaTempatKejadian}>{item.namaTempatKejadian}</option>
+                            ))}
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                        {formData.lokasiKejadianPerkara === 'Lainnya' && (
+                            <div className="mt-2">
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Sebutkan Lokasi Lainnya</label>
+                                <input type="text" name="lokasiKejadianPerkaraLainnya" value={formData.lokasiKejadianPerkaraLainnya || ''} onChange={handleChange} placeholder="Masukkan lokasi kejadian perkara lainnya..." className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -70,9 +82,9 @@ const KasusForm = ({ formData, handleChange, jenisKasusList, bentukKekerasanList
                         <label className="block text-sm font-medium text-slate-700 mb-1">Layanan yang Dibutuhkan</label>
                         <select name="layananDibutuhkan" value={formData.layananDibutuhkan} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg">
                             <option value="">Pilih Layanan</option>
-                            <option value="Konseling">Konseling</option>
-                            <option value="Mediasi">Mediasi</option>
-                            <option value="Medis">Medis</option>
+                            {jenisLayananList.map((item) => (
+                                <option key={item.idJenisLayanan} value={item.namaJenisLayanan}>{item.namaJenisLayanan}</option>
+                            ))}
                         </select>
                     </div>
                     <div>

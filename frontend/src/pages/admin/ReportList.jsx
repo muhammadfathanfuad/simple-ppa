@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { laporanService } from '../../services';
 import Swal from 'sweetalert2';
 
 const ReportList = () => {
@@ -26,21 +27,15 @@ const ReportList = () => {
     const fetchReports = async () => {
         setLoading(true);
         try {
-            const params = new URLSearchParams();
-            if (filterStatus && filterStatus !== 'All') params.append('status', filterStatus.toLowerCase());
-            if (searchQuery) params.append('q', searchQuery);
-            if (startDate) params.append('startDate', startDate);
-            if (endDate) params.append('endDate', endDate);
+            const params = {
+                ...(filterStatus && filterStatus !== 'All' && { status: filterStatus.toLowerCase() }),
+                ...(searchQuery && { q: searchQuery }),
+                ...(startDate && { startDate }),
+                ...(endDate && { endDate })
+            };
 
-            const response = await fetch(`http://localhost:5000/api/laporan/all?${params.toString()}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}` // Assuming token is stored in localStorage
-                }
-            });
-            const data = await response.json();
-            if (data.data) {
-                setReports(data.data);
-            }
+            const response = await laporanService.getAllLaporan(params);
+            setReports(Array.isArray(response?.data) ? response.data : (Array.isArray(response) ? response : []));
         } catch (error) {
             console.error("Failed to fetch reports:", error);
         } finally {
@@ -58,26 +53,12 @@ const ReportList = () => {
 
     const handleExportExcel = async () => {
         try {
-            const params = new URLSearchParams();
-            if (startDate) params.append('startDate', startDate);
-            if (endDate) params.append('endDate', endDate);
+            const params = {
+                ...(startDate && { startDate }),
+                ...(endDate && { endDate })
+            };
 
-            const response = await fetch(`http://localhost:5000/api/laporan/export-excel?${params.toString()}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-
-            if (!response.ok) throw new Error('Gagal export data');
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'Laporan_PPA_Excel.xlsx';
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
+            await laporanService.exportLaporanExcel(params);
         } catch (error) {
             console.error("Export Error:", error);
             Swal.fire('Gagal', 'Gagal mengunduh file Excel.', 'error');
@@ -98,28 +79,17 @@ const ReportList = () => {
         if (!statusData.newStatus) return;
 
         try {
-            const response = await fetch(`http://localhost:5000/api/laporan/${statusData.id}/status`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                    status: statusData.newStatus.toLowerCase(),
-                    catatan: statusData.note
-                })
+            await laporanService.updateLaporanStatus(statusData.id, {
+                status: statusData.newStatus.toLowerCase(),
+                catatan: statusData.note
             });
 
-            if (response.ok) {
-                setShowStatusModal(false);
-                fetchReports(); // Refresh data
-                Swal.fire('Berhasil!', 'Status laporan berhasil diperbarui', 'success');
-            } else {
-                Swal.fire('Gagal', 'Gagal memperbarui status', 'error');
-            }
+            setShowStatusModal(false);
+            fetchReports(); // Refresh data
+            Swal.fire('Berhasil!', 'Status laporan berhasil diperbarui', 'success');
         } catch (error) {
             console.error("Error updating status:", error);
-            Swal.fire('Error', 'Terjadi kesalahan saat memperbarui status', 'error');
+            Swal.fire('Gagal', 'Gagal memperbarui status', 'error');
         }
     };
 

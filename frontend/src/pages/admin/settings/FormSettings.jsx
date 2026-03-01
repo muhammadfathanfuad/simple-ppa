@@ -215,6 +215,21 @@ const FormSettings = () => {
                     columns={[{ label: 'Nama Bentuk', key: 'namaBentukKekerasan' }]}
                 />
                 <MasterTable
+                    title="Layanan yang Dibutuhkan"
+                    endpoint="jenis-layanan"
+                    columns={[{ label: 'Nama Jenis Layanan', key: 'namaJenisLayanan' }]}
+                />
+                <MasterTable
+                    title="Lokasi Kejadian Perkara"
+                    endpoint="tempat-kejadian"
+                    columns={[{ label: 'Nama Tempat', key: 'namaTempatKejadian' }]}
+                />
+                <MasterTable
+                    title="Hubungan dengan Korban"
+                    endpoint="hubungan-korban"
+                    columns={[{ label: 'Nama Hubungan', key: 'namaHubungan' }]}
+                />
+                <MasterTable
                     title="Kecamatan"
                     endpoint="kecamatan"
                     columns={[

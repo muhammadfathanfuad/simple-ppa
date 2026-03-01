@@ -1,4 +1,4 @@
-const prisma = require("../lib/prisma");
+const prisma = require("../../lib/prisma");
 
 // Generic function generator for simple Name-Active CRUD
 const createMasterDataController = (modelName, idField, nameField) => ({
@@ -67,6 +67,9 @@ const createMasterDataController = (modelName, idField, nameField) => ({
 // Create specific controllers
 const jenisKasusController = createMasterDataController('jenisKasus', 'idJenisKasus', 'namaJenisKasus');
 const bentukKekerasanController = createMasterDataController('bentukKekerasan', 'idBentukKekerasan', 'namaBentukKekerasan');
+const jenisLayananController = createMasterDataController('jenisLayanan', 'idJenisLayanan', 'namaJenisLayanan');
+const tempatKejadianController = createMasterDataController('tempatKejadian', 'idTempatKejadian', 'namaTempatKejadian');
+const hubunganKorbanController = createMasterDataController('hubunganKorban', 'idHubungan', 'namaHubungan');
 const kecamatanController = {
     // Custom for Kecamatan because of fields like 'kodeKecamatan', 'fileGeojson', 'warna'
     getAll: async (req, res) => {
@@ -112,5 +115,8 @@ const kecamatanController = {
 module.exports = {
     jenisKasus: jenisKasusController,
     bentukKekerasan: bentukKekerasanController,
-    kecamatan: kecamatanController
+    kecamatan: kecamatanController,
+    jenisLayanan: jenisLayananController,
+    tempatKejadian: tempatKejadianController,
+    hubunganKorban: hubunganKorbanController
 };

@@ -80,8 +80,8 @@ export const generateSuratPermohonan = (formData, jenisKasusList) => {
 
     const terlaporData = [
         { label: 'Nama', value: formData.namaTerlapor || '-' },
-        { label: 'Jenis Kelamin', value: '-' }, // Not in DB schema for Terlapor yet
-        { label: 'Tempat Tanggal Lahir', value: terlaporTTL || '-' },
+        { label: 'Jenis Kelamin', value: formData.jkTerlapor || '-' },
+        { label: 'Tempat Tanggal Lahir', value: formData.ttlTerlapor || '-' },
         { label: 'Alamat', value: formData.alamatTerlapor || '-' },
         { label: 'No. Telepon', value: formData.noTelpTerlapor || '-' },
         { label: 'Pekerjaan', value: formData.pekerjaanTerlapor || '-' },
@@ -253,18 +253,16 @@ export const generateFormulirPenerimaan = (formData) => {
     addRow('1', 'Nama', formData.namaTerlapor);
 
     // Combining TTL for Terlapor
-    const terlaporTTL = `${formData.tempatLahirTerlapor || ''}${formData.tempatLahirTerlapor && formData.tanggalLahirTerlapor ? ' / ' : ''}${formData.tanggalLahirTerlapor || ''}`;
-    addRow('2', 'Tempat / Tanggal Lahir', terlaporTTL);
-
-    addRow('3', 'Jenis Kelamin', ''); // Not in formData.terlapor currently?
+    addRow('2', 'Tempat / Tanggal Lahir', formData.ttlTerlapor);
+    addRow('3', 'Jenis Kelamin', formData.jkTerlapor);
     addRow('4', 'Alamat', formData.alamatTerlapor);
-    addRow('5', 'Kewarganegaraan', ''); // Not in schema?
+    addRow('5', 'Kewarganegaraan', formData.kewarganegaraanTerlapor);
     addRow('6', 'Nomor Telepon', formData.noTelpTerlapor);
     addRow('7', 'Pendidikan', formData.pendidikanTerlapor);
     addRow('8', 'Agama', formData.agamaTerlapor);
     addRow('9', 'Pekerjaan', formData.pekerjaanTerlapor);
     addRow('10', 'Status', formData.statusPerkawinanTerlapor);
-    addRow('11', 'Jumlah Anak', ''); // Not in schema for Terlapor
+    addRow('11', 'Jumlah Anak', formData.jumlahAnakTerlapor);
     addRow('12', 'Nama Orang Tua / Wali', formData.namaOrtuWaliTerlapor);
     addRow('13', 'Alamat Orang Tua / Wali', formData.alamatOrtuWaliTerlapor);
 
@@ -288,7 +286,7 @@ export const generateFormulirPenerimaan = (formData) => {
     addRow('4', 'Nomor Telepon', formData.noTelpPelapor);
     addRow('5', 'Pekerjaan', formData.pekerjaanPelapor);
     addRow('6', 'Hubungan dengan Korban', formData.hubunganKorban);
-    addRow('7', 'Hubungan dengan Terlapor', ''); // Not strictly in pelapor schema, usually inferred or empty
+    addRow('7', 'Hubungan dengan Terlapor', formData.hubunganTerlaporPelapor || '');
 
     y += lineHeight * 3;
 

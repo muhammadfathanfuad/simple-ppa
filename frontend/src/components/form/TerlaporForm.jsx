@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TerlaporForm = ({ formData, handleChange }) => {
+const TerlaporForm = ({ formData, handleChange, hubunganKorbanList }) => {
     return (
         <div id="identitas-terlapor" className="border-t border-slate-100 pt-4 scroll-mt-[100px]">
             <h3 className="text-lg font-bold text-slate-800 mb-4 sticky top-[100px] bg-white z-10 py-2 border-b border-slate-100 shadow-sm px-2 -mx-2 rounded">III. Identitas Terlapor</h3>
@@ -12,6 +12,20 @@ const TerlaporForm = ({ formData, handleChange }) => {
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Tempat/Tgl Lahir</label>
                     <input type="text" name="ttlTerlapor" value={formData.ttlTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Kendari, 01-01-1990" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Kelamin</label>
+                    <select name="jkTerlapor" value={formData.jkTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Kewarganegaraan</label>
+                    <select name="kewarganegaraanTerlapor" value={formData.kewarganegaraanTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        <option value="WNI">WNI</option>
+                        <option value="WNA">WNA</option>
+                    </select>
                 </div>
                 <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Alamat (Desa, Kel, Kec, Kab, Kota, Prov)</label>
@@ -29,8 +43,9 @@ const TerlaporForm = ({ formData, handleChange }) => {
                         <option value="SD">SD</option>
                         <option value="SLTP">SLTP</option>
                         <option value="SLTA">SLTA</option>
-                        <option value="D1/D2/D3">D1/D2/D3</option>
-                        <option value="S1/S2/S3">S1/S2/S3</option>
+                        <option value="Perguruan Tinggi">Perguruan Tinggi</option>
+                        <option value="PAUD/TK">PAUD/TK</option>
+                        <option value="Lainnya">Lainnya</option>
                     </select>
                 </div>
                 <div>
@@ -83,7 +98,31 @@ const TerlaporForm = ({ formData, handleChange }) => {
                 </div>
                 <div className="col-span-1 md:col-span-2">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Hubungan dengan Korban</label>
-                    <input type="text" name="hubunganKorbanTerlapor" value={formData.hubunganKorbanTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
+                    <select
+                        name="hubunganKorbanTerlapor"
+                        value={formData.hubunganKorbanTerlapor || ''}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                    >
+                        <option value="">Pilih Hubungan</option>
+                        {hubunganKorbanList?.map((item) => (
+                            <option key={item.idHubungan} value={item.namaHubungan}>{item.namaHubungan}</option>
+                        ))}
+                        <option value="Lainnya">Lainnya</option>
+                    </select>
+                    {formData.hubunganKorbanTerlapor === 'Lainnya' && (
+                        <div className="mt-2">
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Sebutkan Hubungan Lainnya</label>
+                            <input
+                                type="text"
+                                name="hubunganKorbanTerlaporLainnya"
+                                value={formData.hubunganKorbanTerlaporLainnya || ''}
+                                onChange={handleChange}
+                                placeholder="Masukkan hubungan lainnya..."
+                                className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm"
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

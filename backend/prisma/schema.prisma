@@ -78,8 +78,8 @@ enum Pendidikan {
   SD
   SLTP
   SLTA
-  D1_D2_D3 @map("D1/D2/D3")
-  S1_S2_S3 @map("S1/S2/S3")
+  Perguruan_Tinggi @map("Perguruan Tinggi")
+  PAUD_TK @map("PAUD/TK")
   Lainnya
 }
 
@@ -169,7 +169,9 @@ model Pelapor {
   pekerjaanLainnya     String?        @db.VarChar(80) @map("pekerjaan_lainnya")
   agama                Agama?
   agamaLainnya         String?        @db.VarChar(50) @map("agama_lainnya")
+  jenisKelamin         JenisKelamin?  @map("jenis_kelamin")
   hubunganDenganKorban String?        @db.VarChar(80) @map("hubungan_dengan_korban")
+  hubunganDenganTerlapor String?      @db.VarChar(100) @map("hubungan_dengan_terlapor")
   dibuatPada           DateTime?      @default(now()) @map("dibuat_pada") @db.DateTime(0)
 
   laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
@@ -219,6 +221,8 @@ model Terlapor {
   nama              String           @db.VarChar(120)
   tempatLahir       String?          @db.VarChar(80) @map("tempat_lahir")
   tanggalLahir      DateTime?        @map("tanggal_lahir") @db.Date
+  jenisKelamin      JenisKelamin?    @map("jenis_kelamin")
+  kewarganegaraan   Kewarganegaraan?
   alamat            String?          @db.VarChar(255)
   nomorTelepon      String?          @db.VarChar(30) @map("nomor_telepon")
   pendidikan        Pendidikan?
@@ -227,8 +231,9 @@ model Terlapor {
   statusPerkawinan  String?          @db.VarChar(50) @map("status_perkawinan") // Dropdown: Belum Nikah, Nikah, dll
   namaOrtuWali      String?          @db.VarChar(120) @map("nama_ortu_wali")
   alamatOrtuWali    String?          @db.VarChar(255) @map("alamat_ortu_wali")
-  pekerjaanOrtu     String?          @db.VarChar(100) @map("pekerjaan_ortu") // Gabungan atau salah satu?
+  pekerjaanOrtu     String?          @db.VarChar(100) @map("pekerjaan_ortu")
   jumlahSaudara     Int?             @map("jumlah_saudara")
+  jumlahAnak        Int?             @map("jumlah_anak")
   hubunganDenganKorban String?       @db.VarChar(100) @map("hubungan_dengan_korban")
   
   laporan Laporan @relation(fields: [idLaporan], references: [idLaporan], onDelete: Cascade)
@@ -348,4 +353,20 @@ model LogStatusLaporan {
   admin   Admin?  @relation(fields: [idAdmin], references: [idAdmin])
 
   @@map("log_status_laporan")
+}
+
+model TempatKejadian {
+  idTempatKejadian   Int      @id @default(autoincrement()) @map("id_tempat_kejadian")
+  namaTempatKejadian String   @db.VarChar(100) @map("nama_tempat_kejadian")
+  aktif              Boolean? @default(true)
+
+  @@map("tempat_kejadian")
+}
+
+model HubunganKorban {
+  idHubungan   Int      @id @default(autoincrement()) @map("id_hubungan")
+  namaHubungan String   @db.VarChar(100) @map("nama_hubungan")
+  aktif        Boolean? @default(true)
+
+  @@map("hubungan_korban")
 }

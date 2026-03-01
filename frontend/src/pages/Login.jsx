@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authService } from '../services';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -14,27 +15,15 @@ const Login = () => {
         setLoading(true);
 
         try {
-            const response = await fetch('http://localhost:5000/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                // Login successful
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('user', JSON.stringify(data.admin));
-                navigate('/admin');
-            } else {
-                setError(data.message || 'Login gagal. Periksa kembali email dan password Anda.');
-            }
+            const response = await authService.login({ email, password });
+            
+            // Login successful
+            localStorage.setItem('token', response.data?.token || response.token);
+            localStorage.setItem('user', JSON.stringify(response.data?.admin || response.admin));
+            navigate('/admin');
         } catch (err) {
             console.error("Login Error:", err);
-            setError('Terjadi kesalahan pada server. Silakan coba lagi nanti.');
+            setError(err.message || 'Login gagal. Periksa kembali email dan password Anda.');
         } finally {
             setLoading(false);
         }
