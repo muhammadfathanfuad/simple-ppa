@@ -24,6 +24,7 @@ const API_ENDPOINTS = {
     REKAP_EXPORT_PEREMPUAN: '/laporan/rekap/export/perempuan',
     REKAP_EXPORT_ANAK: '/laporan/rekap/export/anak',
     GIS: '/laporan/gis',
+    DELETE: '/laporan',
 
     // Master data
     MASTER_KECAMATAN: '/laporan/master/kecamatan',

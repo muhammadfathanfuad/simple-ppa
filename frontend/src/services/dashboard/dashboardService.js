@@ -3,8 +3,8 @@ import { API_ENDPOINTS } from '../../config';
 
 class DashboardService {
   // Get dashboard statistics
-  async getDashboardStats() {
-    return await apiService.get(API_ENDPOINTS.DASHBOARD.STATS);
+  async getDashboardStats(params = {}) {
+    return await apiService.get(API_ENDPOINTS.DASHBOARD.STATS, { params });
   }
 }
 

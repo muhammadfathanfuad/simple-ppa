@@ -561,6 +561,42 @@ const cekStatusLaporan = async (req, res) => {
     }
 };
 
+/**
+ * Deletes a specific laporan by ID
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+const deleteLaporan = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const idNum = parseInt(id);
+
+        const laporan = await prisma.laporan.findUnique({
+            where: { idLaporan: idNum }
+        });
+
+        if (!laporan) {
+            return res.status(404).json({
+                status: 'fail',
+                message: 'Laporan not found'
+            });
+        }
+
+        // Delete laporan (cascade will handle related records)
+        await prisma.laporan.delete({
+            where: { idLaporan: idNum }
+        });
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Laporan berhasil dihapus'
+        });
+    } catch (error) {
+        logErrorToFile(error, 'deleteLaporan');
+        throw new AppError('Failed to delete laporan', 500);
+    }
+};
+
 module.exports = {
     getAllLaporan,
     getLaporanDetail,
@@ -568,5 +604,6 @@ module.exports = {
     updateStatus,
     getLokasiKasus,
     updateLaporan,
-    cekStatusLaporan
+    cekStatusLaporan,
+    deleteLaporan
 };

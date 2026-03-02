@@ -1,7 +1,44 @@
 const prisma = require("../../lib/prisma");
 
+const getDateFilter = (filterParam) => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    if (filterParam === 'year') {
+        const startOfYear = new Date(currentYear, 0, 1);
+        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+        return { gte: startOfYear, lte: endOfYear };
+    }
+    if (filterParam === 'month') {
+        const startOfMonth = new Date(currentYear, currentMonth, 1);
+        const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+        return { gte: startOfMonth, lte: endOfMonth };
+    }
+    if (filterParam === 'week') {
+        const getMonday = (d) => {
+            const dLocal = new Date(d);
+            const day = dLocal.getDay();
+            const diff = dLocal.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(dLocal.setDate(diff));
+        };
+        const startOfWeek = getMonday(now);
+        startOfWeek.setHours(0, 0, 0, 0);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        return { gte: startOfWeek, lte: endOfWeek };
+    }
+    return undefined; // No filter (all time)
+};
+
 const getDashboardStats = async (req, res) => {
     try {
+        const { kecamatanFilter, usiaFilter, kasusFilter } = req.query;
+
+        const kecamatanDateFilter = getDateFilter(kecamatanFilter);
+        const usiaDateFilter = getDateFilter(usiaFilter);
+        const kasusDateFilter = getDateFilter(kasusFilter);
         // 1. Get total reports for percentage calculation
         const totalReports = await prisma.laporan.count();
 
@@ -106,13 +143,18 @@ const getDashboardStats = async (req, res) => {
         });
 
         // 3. Get all Kecamatan with their report counts
-        const kecamatanStats = await prisma.kecamatan.findMany({
+        const kecamatanStatsArgs = {
             include: {
                 _count: {
-                    select: { laporan: true }
+                    select: {
+                        laporan: kecamatanDateFilter ? {
+                            where: { tanggalKejadian: kecamatanDateFilter }
+                        } : true
+                    }
                 }
             }
-        });
+        };
+        const kecamatanStats = await prisma.kecamatan.findMany(kecamatanStatsArgs);
 
         // 3. Transform data for frontend
         const regionData = kecamatanStats.map(kec => {
@@ -130,23 +172,38 @@ const getDashboardStats = async (req, res) => {
         });
 
         // 4. Get cases by case type (Jenis Kasus)
-        const jenisKasusData = await prisma.jenisKasus.findMany({
+        const jenisKasusArgs = {
             include: {
-                _count: { select: { laporan: true } }
+                _count: {
+                    select: {
+                        laporan: kasusDateFilter ? {
+                            where: { tanggalKejadian: kasusDateFilter }
+                        } : true
+                    }
+                }
             }
-        });
+        };
+        const jenisKasusData = await prisma.jenisKasus.findMany(jenisKasusArgs);
         const kasusStats = jenisKasusData.map(jk => ({
             name: jk.namaJenisKasus,
             count: jk._count.laporan
         })).sort((a, b) => b.count - a.count);
 
         // 5. Get victims data to calculate age and gender stats
-        const korbanData = await prisma.korban.findMany({
+        const korbanArgs = {
             select: {
                 tanggalLahir: true,
                 jenisKelamin: true
-            }
-        });
+            },
+            ...(usiaDateFilter && {
+                where: {
+                    laporan: {
+                        tanggalKejadian: usiaDateFilter
+                    }
+                }
+            })
+        };
+        const korbanData = await prisma.korban.findMany(korbanArgs);
 
         const usiaStats = {
             'Laki-laki': { '0-5': 0, '6-11': 0, '12-17': 0, '18-25': 0, '26-45': 0, '46+': 0 },

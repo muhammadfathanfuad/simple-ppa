@@ -49,6 +49,11 @@ class LaporanService {
     return await apiService.put(`${API_ENDPOINTS.LAPORAN.UPDATE}/${id}`, laporanData);
   }
 
+  // Delete laporan
+  async deleteLaporan(id) {
+    return await apiService.delete(`${API_ENDPOINTS.LAPORAN.DELETE}/${id}`);
+  }
+
   // Get laporan locations for GIS
   async getLokasiKasus(params = {}) {
     return await apiService.get(API_ENDPOINTS.LAPORAN.GIS, params);

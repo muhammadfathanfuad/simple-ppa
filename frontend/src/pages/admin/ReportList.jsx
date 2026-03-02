@@ -123,6 +123,30 @@ const ReportList = () => {
         setSelectedReport(null);
     };
 
+    const handleDelete = async (id, kode) => {
+        const result = await Swal.fire({
+            title: 'Apakah Anda yakin?',
+            text: `Laporan dengan tiket #${kode} akan dihapus secara permanen!`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Ya, hapus!',
+            cancelButtonText: 'Batal'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                await laporanService.deleteLaporan(id);
+                Swal.fire('Terhapus!', 'Laporan berhasil dihapus.', 'success');
+                fetchReports(); // Refresh list
+            } catch (error) {
+                console.error("Error deleting laporan:", error);
+                Swal.fire('Gagal', 'Terjadi kesalahan saat menghapus laporan.', 'error');
+            }
+        }
+    };
+
     // Helper to format status display (Title Case)
     const toTitleCase = (str) => {
         if (!str) return '-';
@@ -278,11 +302,11 @@ const ReportList = () => {
                                 </button>
 
                                 <button
-                                    onClick={() => navigate(`/admin/laporan/${report.idLaporan}/lengkap`)}
-                                    className="p-2 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200"
-                                    title="Lihat Detail"
+                                    onClick={() => handleDelete(report.idLaporan, report.kodeLaporan)}
+                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-slate-200"
+                                    title="Hapus"
                                 >
-                                    <i className="bi bi-eye"></i>
+                                    <i className="bi bi-trash"></i>
                                 </button>
                             </div>
                         </div>
@@ -371,13 +395,13 @@ const ReportList = () => {
                                                     <i className="bi bi-file-earmark-text text-lg"></i>
                                                 </button>
 
-                                                {/* View Detail Link */}
+                                                {/* Delete Button */}
                                                 <button
-                                                    onClick={() => navigate(`/admin/laporan/${report.idLaporan}/lengkap`)}
-                                                    className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
-                                                    title="Lihat Detail"
+                                                    onClick={() => handleDelete(report.idLaporan, report.kodeLaporan)}
+                                                    className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Hapus"
                                                 >
-                                                    <i className="bi bi-eye text-lg"></i>
+                                                    <i className="bi bi-trash text-lg"></i>
                                                 </button>
                                             </div>
                                         </td>

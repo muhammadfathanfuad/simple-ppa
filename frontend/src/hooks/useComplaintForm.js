@@ -136,12 +136,14 @@ const useComplaintForm = (id) => {
 
     const fetchReportData = async (reportId) => {
         try {
-            const [response, tempatRes] = await Promise.all([
+            const [response, tempatRes, hubunganRes] = await Promise.all([
                 laporanService.getLaporanDetail(reportId),
-                laporanService.getTempatKejadian()
+                laporanService.getTempatKejadian(),
+                laporanService.getHubunganKorban()
             ]);
             const data = response.data || response;
             const tempatList = tempatRes.data || tempatRes || [];
+            const hubunganList = hubunganRes.data || hubunganRes || [];
 
             if (data) {
                 const formatTTL = (tempat, tanggal) => {
@@ -174,9 +176,9 @@ const useComplaintForm = (id) => {
 
                 const isLainnyaTempat = data.lokasiKejadianPerkara && !tempatList.find(t => t.namaTempatKejadian === data.lokasiKejadianPerkara);
 
-                const isLainnyaHubunganPelapor = data.pelapor?.hubunganDenganKorban && !hubunganData.data?.find(h => h.namaHubungan === data.pelapor?.hubunganDenganKorban);
-                const isLainnyaHubunganKorban = data.korban?.hubunganDenganTerlapor && !hubunganData.data?.find(h => h.namaHubungan === data.korban?.hubunganDenganTerlapor);
-                const isLainnyaHubunganTerlapor = data.terlapor?.hubunganDenganKorban && !hubunganData.data?.find(h => h.namaHubungan === data.terlapor?.hubunganDenganKorban);
+                const isLainnyaHubunganPelapor = data.pelapor?.hubunganDenganKorban && !hubunganList.find(h => h.namaHubungan === data.pelapor?.hubunganDenganKorban);
+                const isLainnyaHubunganKorban = data.korban?.hubunganDenganTerlapor && !hubunganList.find(h => h.namaHubungan === data.korban?.hubunganDenganTerlapor);
+                const isLainnyaHubunganTerlapor = data.terlapor?.hubunganDenganKorban && !hubunganList.find(h => h.namaHubungan === data.terlapor?.hubunganDenganKorban);
 
                 setFormData(prev => ({
                     ...prev,

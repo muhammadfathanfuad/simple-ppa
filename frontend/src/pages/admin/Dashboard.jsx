@@ -55,12 +55,16 @@ const Dashboard = () => {
         usiaStats: { 'Laki-laki': {}, 'Perempuan': {} }
     });
     const [chartFilter, setChartFilter] = useState('year'); // 'year', 'month', 'week'
+    const [kasusFilter, setKasusFilter] = useState('all');
+    const [kecamatanFilter, setKecamatanFilter] = useState('all');
+    const [usiaFilter, setUsiaFilter] = useState('all');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const data = await dashboardService.getDashboardStats();
+                const params = { kasusFilter, kecamatanFilter, usiaFilter };
+                const data = await dashboardService.getDashboardStats(params);
                 setStats(data.data || data);
             } catch (error) {
                 console.error("Failed to fetch dashboard stats:", error);
@@ -70,7 +74,7 @@ const Dashboard = () => {
         };
 
         fetchStats();
-    }, []);
+    }, [kasusFilter, kecamatanFilter, usiaFilter]);
 
     // Custom DivIcon for percentage markers
     const createPercentageIcon = (percentage) => {
@@ -284,7 +288,10 @@ const Dashboard = () => {
 
     // 3. Per Kasus (Horizontal Bar Chart)
     const kasusChartData = {
-        labels: (stats.kasusStats || []).map(k => k.name),
+        labels: (stats.kasusStats || []).map(k => {
+            const match = k.name.match(/\((.*?)\)/);
+            return match ? match[1] : k.name;
+        }),
         datasets: [{
             label: 'Jumlah Kasus',
             data: (stats.kasusStats || []).map(k => k.count),
@@ -345,7 +352,19 @@ const Dashboard = () => {
                 </div>
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-700 mb-4">Statistik Per Jenis Kasus</h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-700">Statistik Per Jenis Kasus</h3>
+                        <select
+                            className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
+                            value={kasusFilter}
+                            onChange={(e) => setKasusFilter(e.target.value)}
+                        >
+                            <option value="all">Semua Waktu</option>
+                            <option value="year">Tahun Ini</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="week">Minggu Ini</option>
+                        </select>
+                    </div>
                     <div className="h-[300px]">
                         <Bar data={kasusChartData} options={horizontalBarOptions} />
                     </div>
@@ -354,14 +373,38 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-700 mb-4">Statistik Per Kecamatan</h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-700">Statistik Per Kecamatan</h3>
+                        <select
+                            className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
+                            value={kecamatanFilter}
+                            onChange={(e) => setKecamatanFilter(e.target.value)}
+                        >
+                            <option value="all">Semua Waktu</option>
+                            <option value="year">Tahun Ini</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="week">Minggu Ini</option>
+                        </select>
+                    </div>
                     <div className="h-[300px]">
                         <Bar data={kecamatanChartData} options={horizontalBarOptions} />
                     </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <h3 className="text-lg font-bold text-slate-700 mb-4">Statistik Per Usia & Jenis Kelamin</h3>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-bold text-slate-700">Statistik Per Usia & Jenis Kelamin</h3>
+                        <select
+                            className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
+                            value={usiaFilter}
+                            onChange={(e) => setUsiaFilter(e.target.value)}
+                        >
+                            <option value="all">Semua Waktu</option>
+                            <option value="year">Tahun Ini</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="week">Minggu Ini</option>
+                        </select>
+                    </div>
                     <div className="h-[300px]">
                         <Bar data={usiaChartData} options={groupedBarOptions} />
                     </div>

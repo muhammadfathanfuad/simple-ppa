@@ -31,5 +31,6 @@ router.get('/gis', verifyToken, laporanCoreController.getLokasiKasus);
 router.get('/export', verifyToken, laporanExportController.exportLaporan);
 router.get('/export-excel', verifyToken, laporanExportController.exportExcel);
 router.put('/update/:id', verifyToken, laporanCoreController.updateLaporan);
+router.delete('/:id', verifyToken, laporanCoreController.deleteLaporan);
 
 module.exports = router;
