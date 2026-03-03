@@ -80,6 +80,7 @@ enum Pendidikan {
   SLTA
   Perguruan_Tinggi @map("Perguruan Tinggi")
   PAUD_TK @map("PAUD/TK")
+  Tidak_Dikenal @map("Tidak Dikenal")
   Lainnya
 }
 
@@ -219,8 +220,7 @@ model Terlapor {
   idTerlapor        BigInt           @id @default(autoincrement()) @map("id_terlapor")
   idLaporan         BigInt           @unique @map("id_laporan")
   nama              String           @db.VarChar(120)
-  tempatLahir       String?          @db.VarChar(80) @map("tempat_lahir")
-  tanggalLahir      DateTime?        @map("tanggal_lahir") @db.Date
+  umur              String?          @db.VarChar(50)
   jenisKelamin      JenisKelamin?    @map("jenis_kelamin")
   kewarganegaraan   Kewarganegaraan?
   alamat            String?          @db.VarChar(255)

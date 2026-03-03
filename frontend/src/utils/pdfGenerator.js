@@ -80,8 +80,8 @@ export const generateSuratPermohonan = (formData, jenisKasusList) => {
 
     const terlaporData = [
         { label: 'Nama', value: formData.namaTerlapor || '-' },
+        { label: 'Umur', value: formData.umurTerlapor ? `${formData.umurTerlapor}` : '-' },
         { label: 'Jenis Kelamin', value: formData.jkTerlapor || '-' },
-        { label: 'Tempat Tanggal Lahir', value: formData.ttlTerlapor || '-' },
         { label: 'Alamat', value: formData.alamatTerlapor || '-' },
         { label: 'No. Telepon', value: formData.noTelpTerlapor || '-' },
         { label: 'Pekerjaan', value: formData.pekerjaanTerlapor || '-' },

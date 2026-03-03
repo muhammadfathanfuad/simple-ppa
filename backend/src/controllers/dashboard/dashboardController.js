@@ -1,21 +1,27 @@
 const prisma = require("../../lib/prisma");
 
-const getDateFilter = (filterParam) => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
+const getDateFilter = (params) => {
+    const { filterType, year, month, startDate, endDate } = params;
 
-    if (filterParam === 'year') {
-        const startOfYear = new Date(currentYear, 0, 1);
-        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+    if (filterType === 'all' || !filterType) {
+        return undefined; // No filter (all time)
+    }
+
+    const now = new Date();
+    const selectedYear = year ? parseInt(year) : now.getFullYear();
+    const selectedMonth = month ? parseInt(month) : now.getMonth();
+
+    if (filterType === 'year') {
+        const startOfYear = new Date(selectedYear, 0, 1);
+        const endOfYear = new Date(selectedYear, 11, 31, 23, 59, 59, 999);
         return { gte: startOfYear, lte: endOfYear };
     }
-    if (filterParam === 'month') {
-        const startOfMonth = new Date(currentYear, currentMonth, 1);
-        const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+    if (filterType === 'month') {
+        const startOfMonth = new Date(selectedYear, selectedMonth, 1);
+        const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
         return { gte: startOfMonth, lte: endOfMonth };
     }
-    if (filterParam === 'week') {
+    if (filterType === 'week') {
         const getMonday = (d) => {
             const dLocal = new Date(d);
             const day = dLocal.getDay();
@@ -29,126 +35,237 @@ const getDateFilter = (filterParam) => {
         endOfWeek.setHours(23, 59, 59, 999);
         return { gte: startOfWeek, lte: endOfWeek };
     }
-    return undefined; // No filter (all time)
+    if (filterType === 'custom' && startDate && endDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        return { gte: start, lte: end };
+    }
+
+    return undefined; // Default all fallback
+};
+
+const getAvailableYears = async (req, res) => {
+    try {
+        const laporanDates = await prisma.laporan.findMany({
+            select: { tanggalKejadian: true }
+        });
+
+        const years = new Set(
+            laporanDates
+                .filter(l => l.tanggalKejadian != null)
+                .map(l => new Date(l.tanggalKejadian).getFullYear())
+        );
+        const currentYear = new Date().getFullYear();
+        years.add(currentYear); // Ensure at least current year is in the list
+
+        // Return sorted descending
+        const sortedYears = Array.from(years).sort((a, b) => b - a);
+
+        res.json(sortedYears);
+    } catch (error) {
+        console.error("Error getting available years:", error);
+        res.status(500).json({ message: "Gagal mengambil daftar tahun." });
+    }
 };
 
 const getDashboardStats = async (req, res) => {
     try {
-        const { kecamatanFilter, usiaFilter, kasusFilter } = req.query;
+        const { filterType, year, month, startDate, endDate } = req.query;
 
-        const kecamatanDateFilter = getDateFilter(kecamatanFilter);
-        const usiaDateFilter = getDateFilter(usiaFilter);
-        const kasusDateFilter = getDateFilter(kasusFilter);
+        // Apply global date filter
+        const globalDateFilter = getDateFilter({ filterType, year, month, startDate, endDate });
+
         // 1. Get total reports for percentage calculation
-        const totalReports = await prisma.laporan.count();
+        const totalReports = await prisma.laporan.count({
+            where: globalDateFilter ? { tanggalKejadian: globalDateFilter } : undefined
+        });
 
         // 2. Get report counts by status
         const reportsInProcess = await prisma.laporan.count({
             where: {
-                statusLaporan: 'diproses'
+                statusLaporan: 'diproses',
+                ...(globalDateFilter && { tanggalKejadian: globalDateFilter })
             }
         });
 
         const reportsCompleted = await prisma.laporan.count({
             where: {
-                statusLaporan: 'selesai'
+                statusLaporan: 'selesai',
+                ...(globalDateFilter && { tanggalKejadian: globalDateFilter })
             }
         });
 
         // 2.5 Get trends
+        let trendLabels = [];
+        let trendData = [];
+
         const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth();
+        const selectedYear = year ? parseInt(year) : now.getFullYear();
+        const selectedMonth = month ? parseInt(month) : now.getMonth();
 
-        // YEARLY TREND (Jan-Dec)
-        const startOfYear = new Date(currentYear, 0, 1);
-        const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+        if (filterType === 'month') {
+            const startOfMonth = new Date(selectedYear, selectedMonth, 1);
+            const endOfMonth = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59, 999);
+            const daysInMonth = endOfMonth.getDate();
 
-        const yearlyReports = await prisma.laporan.groupBy({
-            by: ['tanggalKejadian'],
-            where: {
-                tanggalKejadian: {
-                    gte: startOfYear,
-                    lte: endOfYear
-                }
-            },
-            _count: {
-                idLaporan: true
+            for (let i = 1; i <= daysInMonth; i++) {
+                trendLabels.push(i.toString());
             }
-        });
+            trendData = Array(daysInMonth).fill(0);
 
-        const yearlyStats = Array(12).fill(0);
-        yearlyReports.forEach(item => {
-            const monthIndex = new Date(item.tanggalKejadian).getMonth();
-            yearlyStats[monthIndex] += item._count.idLaporan;
-        });
+            const monthlyReports = await prisma.laporan.groupBy({
+                by: ['tanggalKejadian'],
+                where: {
+                    tanggalKejadian: { gte: startOfMonth, lte: endOfMonth }
+                },
+                _count: { idLaporan: true }
+            });
 
-        // MONTHLY TREND (Daily 1-31)
-        const startOfMonth = new Date(currentYear, currentMonth, 1);
-        const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
-        const daysInMonth = endOfMonth.getDate();
-
-        const monthlyReports = await prisma.laporan.groupBy({
-            by: ['tanggalKejadian'],
-            where: {
-                tanggalKejadian: {
-                    gte: startOfMonth,
-                    lte: endOfMonth
+            monthlyReports.forEach(item => {
+                if (item.tanggalKejadian) {
+                    const localDate = new Date(item.tanggalKejadian);
+                    const dayIndex = localDate.getDate() - 1;
+                    if (dayIndex >= 0 && dayIndex < daysInMonth) {
+                        trendData[dayIndex] += item._count.idLaporan;
+                    }
                 }
-            },
-            _count: {
-                idLaporan: true
+            });
+        } else if (filterType === 'week') {
+            trendLabels = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+            trendData = Array(7).fill(0);
+
+            const startOfWeek = new Date(now);
+            const day = startOfWeek.getDay();
+            const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
+            startOfWeek.setDate(diff);
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23, 59, 59, 999);
+
+            const weeklyReports = await prisma.laporan.groupBy({
+                by: ['tanggalKejadian'],
+                where: {
+                    tanggalKejadian: { gte: startOfWeek, lte: endOfWeek }
+                },
+                _count: { idLaporan: true }
+            });
+
+            weeklyReports.forEach(item => {
+                if (item.tanggalKejadian) {
+                    let dayIndex = new Date(item.tanggalKejadian).getDay();
+                    dayIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+                    if (dayIndex >= 0 && dayIndex < 7) {
+                        trendData[dayIndex] += item._count.idLaporan;
+                    }
+                }
+            });
+        } else if (filterType === 'custom' && startDate && endDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+
+            const customReports = await prisma.laporan.groupBy({
+                by: ['tanggalKejadian'],
+                where: {
+                    tanggalKejadian: { gte: start, lte: end }
+                },
+                _count: { idLaporan: true }
+            });
+
+            const dayMap = new Map();
+            let curr = new Date(start);
+            while (curr <= end) {
+                const dateStr = [
+                    curr.getFullYear(),
+                    String(curr.getMonth() + 1).padStart(2, '0'),
+                    String(curr.getDate()).padStart(2, '0')
+                ].join('-');
+                dayMap.set(dateStr, 0);
+                curr.setDate(curr.getDate() + 1);
             }
-        });
 
-        const monthlyStats = Array(daysInMonth).fill(0);
-        monthlyReports.forEach(item => {
-            const dayIndex = new Date(item.tanggalKejadian).getDate() - 1;
-            monthlyStats[dayIndex] += item._count.idLaporan;
-        });
+            customReports.forEach(item => {
+                if (item.tanggalKejadian) {
+                    const localDate = new Date(item.tanggalKejadian);
+                    const dateStr = [
+                        localDate.getFullYear(),
+                        String(localDate.getMonth() + 1).padStart(2, '0'),
+                        String(localDate.getDate()).padStart(2, '0')
+                    ].join('-');
 
-        // WEEKLY TREND (Mon-Sun)
-        const getMonday = (d) => {
-            const dLocal = new Date(d);
-            const day = dLocal.getDay();
-            const diff = dLocal.getDate() - day + (day === 0 ? -6 : 1);
-            return new Date(dLocal.setDate(diff));
+                    if (dayMap.has(dateStr)) {
+                        dayMap.set(dateStr, dayMap.get(dateStr) + item._count.idLaporan);
+                    }
+                }
+            });
+
+            dayMap.forEach((count, dateStr) => {
+                const parts = dateStr.split('-');
+                trendLabels.push(`${parts[2]}/${parts[1]}`); // DD/MM format for labels
+                trendData.push(count);
+            });
+        } else if (filterType === 'year') {
+            trendLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+            trendData = Array(12).fill(0);
+
+            const startOfYear = new Date(selectedYear, 0, 1);
+            const endOfYear = new Date(selectedYear, 11, 31, 23, 59, 59, 999);
+
+            const yearlyReports = await prisma.laporan.groupBy({
+                by: ['tanggalKejadian'],
+                where: {
+                    tanggalKejadian: { gte: startOfYear, lte: endOfYear }
+                },
+                _count: { idLaporan: true }
+            });
+
+            yearlyReports.forEach(item => {
+                if (item.tanggalKejadian) {
+                    const monthIndex = new Date(item.tanggalKejadian).getMonth();
+                    if (monthIndex >= 0 && monthIndex < 12) {
+                        trendData[monthIndex] += item._count.idLaporan;
+                    }
+                }
+            });
+        } else {
+            // filterType === 'all'
+            const allReports = await prisma.laporan.groupBy({
+                by: ['tanggalKejadian'],
+                _count: { idLaporan: true }
+            });
+
+            const yearMap = new Map();
+            allReports.forEach(item => {
+                if (item.tanggalKejadian) {
+                    const y = new Date(item.tanggalKejadian).getFullYear();
+                    yearMap.set(y, (yearMap.get(y) || 0) + item._count.idLaporan);
+                }
+            });
+
+            const sortedYears = Array.from(yearMap.keys()).sort();
+            sortedYears.forEach(y => {
+                trendLabels.push(y.toString());
+                trendData.push(yearMap.get(y));
+            });
+
+            if (trendLabels.length === 0) {
+                trendLabels = [selectedYear.toString()];
+                trendData = [0];
+            }
         }
-
-        const startOfWeek = getMonday(now);
-        startOfWeek.setHours(0, 0, 0, 0);
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
-        endOfWeek.setHours(23, 59, 59, 999);
-
-        const weeklyReports = await prisma.laporan.groupBy({
-            by: ['tanggalKejadian'],
-            where: {
-                tanggalKejadian: {
-                    gte: startOfWeek,
-                    lte: endOfWeek
-                }
-            },
-            _count: {
-                idLaporan: true
-            }
-        });
-
-        const weeklyStats = Array(7).fill(0);
-        weeklyReports.forEach(item => {
-            let dayIndex = new Date(item.tanggalKejadian).getDay();
-            // Convert Sunday (0) to 6, Monday (1) to 0, etc.
-            dayIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-            weeklyStats[dayIndex] += item._count.idLaporan;
-        });
 
         // 3. Get all Kecamatan with their report counts
         const kecamatanStatsArgs = {
             include: {
                 _count: {
                     select: {
-                        laporan: kecamatanDateFilter ? {
-                            where: { tanggalKejadian: kecamatanDateFilter }
+                        laporan: globalDateFilter ? {
+                            where: { tanggalKejadian: globalDateFilter }
                         } : true
                     }
                 }
@@ -164,8 +281,8 @@ const getDashboardStats = async (req, res) => {
             return {
                 id: kec.idKecamatan,
                 name: kec.namaKecamatan,
-                geojson: kec.fileGeojson, // Assuming this contains the GeoJSON string or URL
-                color: kec.warna || '#3B82F6', // Default color if not set
+                geojson: kec.fileGeojson,
+                color: kec.warna || '#3B82F6',
                 reportCount: reportCount,
                 percentage: percentage
             };
@@ -176,8 +293,8 @@ const getDashboardStats = async (req, res) => {
             include: {
                 _count: {
                     select: {
-                        laporan: kasusDateFilter ? {
-                            where: { tanggalKejadian: kasusDateFilter }
+                        laporan: globalDateFilter ? {
+                            where: { tanggalKejadian: globalDateFilter }
                         } : true
                     }
                 }
@@ -195,13 +312,9 @@ const getDashboardStats = async (req, res) => {
                 tanggalLahir: true,
                 jenisKelamin: true
             },
-            ...(usiaDateFilter && {
-                where: {
-                    laporan: {
-                        tanggalKejadian: usiaDateFilter
-                    }
-                }
-            })
+            where: {
+                laporan: globalDateFilter ? { tanggalKejadian: globalDateFilter } : undefined
+            }
         };
         const korbanData = await prisma.korban.findMany(korbanArgs);
 
@@ -236,9 +349,8 @@ const getDashboardStats = async (req, res) => {
             totalReports,
             reportsInProcess,
             reportsCompleted,
-            yearlyStats,
-            monthlyStats,
-            weeklyStats,
+            trendLabels,
+            trendData,
             regions: regionData,
             kasusStats,
             usiaStats
@@ -251,5 +363,6 @@ const getDashboardStats = async (req, res) => {
 };
 
 module.exports = {
-    getDashboardStats
+    getDashboardStats,
+    getAvailableYears
 };

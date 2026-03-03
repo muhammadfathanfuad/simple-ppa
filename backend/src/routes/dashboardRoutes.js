@@ -5,5 +5,6 @@ const { verifyToken } = require('../middlewares/authMiddleware');
 
 // Protected route
 router.get('/stats', verifyToken, dashboardController.getDashboardStats);
+router.get('/available-years', verifyToken, dashboardController.getAvailableYears);
 
 module.exports = router;

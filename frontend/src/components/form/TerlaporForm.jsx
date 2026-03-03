@@ -10,8 +10,8 @@ const TerlaporForm = ({ formData, handleChange, hubunganKorbanList }) => {
                     <input type="text" name="namaTerlapor" value={formData.namaTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Tempat/Tgl Lahir</label>
-                    <input type="text" name="ttlTerlapor" value={formData.ttlTerlapor} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Kendari, 01-01-1990" />
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Umur</label>
+                    <input type="text" name="umurTerlapor" value={formData.umurTerlapor || ''} onChange={handleChange} className="w-full px-3 py-2 border border-slate-300 rounded-lg" placeholder="Contoh: 30 Tahun" />
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1">Jenis Kelamin</label>
@@ -45,6 +45,7 @@ const TerlaporForm = ({ formData, handleChange, hubunganKorbanList }) => {
                         <option value="SLTA">SLTA</option>
                         <option value="Perguruan Tinggi">Perguruan Tinggi</option>
                         <option value="PAUD/TK">PAUD/TK</option>
+                        <option value="Tidak Dikenal">Tidak Dikenal</option>
                         <option value="Lainnya">Lainnya</option>
                     </select>
                 </div>

@@ -64,7 +64,7 @@ const useComplaintForm = (id) => {
 
         // Terlapor
         namaTerlapor: '',
-        ttlTerlapor: '', // Combined Place, Date
+        umurTerlapor: '',
         alamatTerlapor: '', // desa, kelurahan, kecamatan, kabupaten, kota, provinsi
         noTelpTerlapor: '',
         jkTerlapor: 'Laki-laki',
@@ -240,7 +240,7 @@ const useComplaintForm = (id) => {
 
                     // Terlapor
                     namaTerlapor: data.terlapor?.nama || '',
-                    ttlTerlapor: formatTTL(data.terlapor?.tempatLahir, data.terlapor?.tanggalLahir),
+                    umurTerlapor: data.terlapor?.umur || '',
                     alamatTerlapor: data.terlapor?.alamat || '',
                     noTelpTerlapor: data.terlapor?.nomorTelepon || '',
                     jkTerlapor: parseEnumToUI(data.terlapor?.jenisKelamin, 'JenisKelamin') || 'Laki-laki',
@@ -342,7 +342,6 @@ const useComplaintForm = (id) => {
 
         const pelaporTTL = parseTTL(currentFormData.ttlPelapor);
         const korbanTTL = parseTTL(currentFormData.ttlKorban);
-        const terlaporTTL = parseTTL(currentFormData.ttlTerlapor);
 
         const payload = {
             pelapor: {
@@ -391,8 +390,7 @@ const useComplaintForm = (id) => {
             },
             terlapor: {
                 nama: currentFormData.namaTerlapor,
-                tempatLahir: terlaporTTL.tempat,
-                tanggalLahir: terlaporTTL.tanggal,
+                umur: currentFormData.umurTerlapor,
                 jenisKelamin: currentFormData.jkTerlapor,
                 kewarganegaraan: currentFormData.kewarganegaraanTerlapor,
                 alamat: currentFormData.alamatTerlapor,

@@ -67,8 +67,7 @@ const createTerlaporData = (terlapor, enums) => {
 
     return {
         nama: terlapor.nama,
-        tempatLahir: terlapor.tempatLahir,
-        tanggalLahir: terlapor.tanggalLahir ? new Date(terlapor.tanggalLahir) : null,
+        umur: terlapor.umurTerlapor || terlapor.umur || undefined,
         jenisKelamin: enums.jenisKelamin.enumVal,
         kewarganegaraan: enums.kewarganegaraan.enumVal,
         alamat: terlapor.alamat,

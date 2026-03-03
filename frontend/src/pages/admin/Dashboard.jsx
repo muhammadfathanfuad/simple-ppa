@@ -47,23 +47,60 @@ const Dashboard = () => {
         totalReports: 0,
         reportsInProcess: 0,
         reportsCompleted: 0,
-        yearlyStats: [],
-        monthlyStats: [],
-        weeklyStats: [],
+        trendLabels: [],
+        trendData: [],
         regions: [],
         kasusStats: [],
         usiaStats: { 'Laki-laki': {}, 'Perempuan': {} }
     });
-    const [chartFilter, setChartFilter] = useState('year'); // 'year', 'month', 'week'
-    const [kasusFilter, setKasusFilter] = useState('all');
-    const [kecamatanFilter, setKecamatanFilter] = useState('all');
-    const [usiaFilter, setUsiaFilter] = useState('all');
+
+    // Global filter states
+    const [globalFilterType, setGlobalFilterType] = useState('all'); // 'all', 'year', 'month', 'week', 'custom'
+    const [availableYears, setAvailableYears] = useState([]);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth().toString());
+    const [customStartDate, setCustomStartDate] = useState('');
+    const [customEndDate, setCustomEndDate] = useState('');
+
     const [loading, setLoading] = useState(true);
+
+    const months = [
+        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+
+    useEffect(() => {
+        const fetchYears = async () => {
+            try {
+                const res = await dashboardService.getAvailableYears();
+                if (res && res.data) {
+                    setAvailableYears(res.data);
+                } else if (Array.isArray(res)) {
+                    setAvailableYears(res);
+                }
+            } catch (error) {
+                console.error("Failed to fetch available years:", error);
+                setAvailableYears([new Date().getFullYear()]);
+            }
+        };
+        fetchYears();
+    }, []);
 
     useEffect(() => {
         const fetchStats = async () => {
+            setLoading(true);
             try {
-                const params = { kasusFilter, kecamatanFilter, usiaFilter };
+                // Build global filter parameters
+                const params = {
+                    filterType: globalFilterType,
+                    year: selectedYear,
+                    month: selectedMonth
+                };
+                if (globalFilterType === 'custom') {
+                    params.startDate = customStartDate;
+                    params.endDate = customEndDate;
+                }
+
                 const data = await dashboardService.getDashboardStats(params);
                 setStats(data.data || data);
             } catch (error) {
@@ -73,8 +110,13 @@ const Dashboard = () => {
             }
         };
 
+        // Don't auto-fetch if custom is selected but dates aren't filled
+        if (globalFilterType === 'custom' && (!customStartDate || !customEndDate)) {
+            return;
+        }
+
         fetchStats();
-    }, [kasusFilter, kecamatanFilter, usiaFilter]);
+    }, [globalFilterType, selectedYear, selectedMonth, customStartDate, customEndDate]);
 
     // Custom DivIcon for percentage markers
     const createPercentageIcon = (percentage) => {
@@ -86,7 +128,6 @@ const Dashboard = () => {
         });
     };
 
-    // Style for GeoJSON layer
     const regionStyle = (feature) => {
         return {
             fillColor: feature.properties.color || '#3B82F6',
@@ -98,34 +139,14 @@ const Dashboard = () => {
         };
     };
 
-    const kendariCenter = [-3.9985, 122.5126]; // Coordinates for Kendari
-
-    const getChartDataRaw = () => {
-        if (chartFilter === 'month') {
-            return stats.monthlyStats || [];
-        } else if (chartFilter === 'week') {
-            return stats.weeklyStats || [];
-        }
-        return stats.yearlyStats || [];
-    };
-
-    const getChartLabels = () => {
-        if (chartFilter === 'month') {
-            // Generate labels for days in current month (1 to length of data)
-            const days = (stats.monthlyStats || []).length || 30;
-            return Array.from({ length: days }, (_, i) => (i + 1).toString());
-        } else if (chartFilter === 'week') {
-            return ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-        }
-        return ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'okt', 'Nov', 'Des'];
-    };
+    const kendariCenter = [-3.9985, 122.5126];
 
     const chartData = {
-        labels: getChartLabels(),
+        labels: stats.trendLabels || [],
         datasets: [
             {
                 label: 'Jumlah Laporan',
-                data: getChartDataRaw(),
+                data: stats.trendData || [],
                 borderColor: 'rgb(59, 130, 246)',
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
                 tension: 0.4,
@@ -191,9 +212,7 @@ const Dashboard = () => {
         },
     };
 
-    // --- NEW CHARTS CONFIGURATIONS ---
-
-    // 1. Per Kecamatan (Horizontal Bar Chart)
+    // 1. Per Kecamatan
     const sortedRegions = [...(stats.regions || [])].sort((a, b) => b.reportCount - a.reportCount);
     const kecamatanChartData = {
         labels: sortedRegions.map(r => r.name),
@@ -231,7 +250,7 @@ const Dashboard = () => {
         }
     };
 
-    // 2. Per Usia & Jenis Kelamin (Grouped Bar Chart)
+    // 2. Per Usia & Jenis Kelamin
     const usiaLabels = ['0-5', '6-11', '12-17', '18-25', '26-45', '46+'];
     const usiaLakiData = usiaLabels.map(label => stats.usiaStats?.['Laki-laki']?.[label] || 0);
     const usiaPerempuanData = usiaLabels.map(label => stats.usiaStats?.['Perempuan']?.[label] || 0);
@@ -286,7 +305,7 @@ const Dashboard = () => {
         }
     };
 
-    // 3. Per Kasus (Horizontal Bar Chart)
+    // 3. Per Kasus
     const kasusChartData = {
         labels: (stats.kasusStats || []).map(k => {
             const match = k.name.match(/\((.*?)\)/);
@@ -302,10 +321,77 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-6">
+            {/* GLOBAL FILTER */}
+            <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                    <i className="bi bi-funnel text-slate-500"></i>
+                    <h2 className="text-slate-700 font-semibold">Filter Global Laporan</h2>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <select
+                        className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-blue-500"
+                        value={globalFilterType}
+                        onChange={(e) => setGlobalFilterType(e.target.value)}
+                    >
+                        <option value="year">Tahun</option>
+                        <option value="month">Bulan</option>
+                        <option value="week">Minggu Ini</option>
+                        <option value="custom">Rentang Waktu (Custom)</option>
+                        <option value="all">Semua Waktu</option>
+                    </select>
+
+                    {(globalFilterType === 'year' || globalFilterType === 'month') && (
+                        <select
+                            className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-blue-500"
+                            value={selectedYear}
+                            onChange={(e) => setSelectedYear(e.target.value)}
+                        >
+                            {availableYears.map(year => (
+                                <option key={year} value={year}>{year}</option>
+                            ))}
+                        </select>
+                    )}
+
+                    {globalFilterType === 'month' && (
+                        <select
+                            className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-blue-500"
+                            value={selectedMonth}
+                            onChange={(e) => setSelectedMonth(e.target.value)}
+                        >
+                            {months.map((m, index) => (
+                                <option key={index} value={index}>{m}</option>
+                            ))}
+                        </select>
+                    )}
+
+                    {globalFilterType === 'custom' && (
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-blue-500"
+                                value={customStartDate}
+                                onChange={(e) => setCustomStartDate(e.target.value)}
+                            />
+                            <span className="text-sm text-slate-500">s.d</span>
+                            <input
+                                type="date"
+                                className="text-sm border border-slate-300 rounded-lg px-3 py-2 text-slate-700 focus:outline-none focus:border-blue-500"
+                                value={customEndDate}
+                                onChange={(e) => setCustomEndDate(e.target.value)}
+                            />
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* DASHBOARD CARDS */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h3 className="text-slate-500 text-sm font-medium uppercase tracking-wider">Total Laporan</h3>
-                    <p className="text-4xl font-bold text-slate-800 mt-2">{stats.totalReports}</p>
+                    <p className="text-4xl font-bold text-slate-800 mt-2">
+                        {loading ? '...' : stats.totalReports}
+                    </p>
                     <div className="mt-4 text-sm text-green-600 flex items-center gap-1">
                         <i className="bi bi-file-earmark-text text-lg"></i>
                         <span>Semua Laporan Masuk</span>
@@ -314,7 +400,9 @@ const Dashboard = () => {
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h3 className="text-slate-500 text-sm font-medium uppercase tracking-wider">Sedang Di Proses</h3>
-                    <p className="text-4xl font-bold text-blue-600 mt-2">{stats.reportsInProcess}</p>
+                    <p className="text-4xl font-bold text-blue-600 mt-2">
+                        {loading ? '...' : stats.reportsInProcess}
+                    </p>
                     <div className="mt-4 text-sm text-blue-600 flex items-center gap-1">
                         <i className="bi bi-hourglass-split text-lg"></i>
                         <span>Laporan Ditangani</span>
@@ -323,28 +411,26 @@ const Dashboard = () => {
 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h3 className="text-slate-500 text-sm font-medium uppercase tracking-wider">Laporan Selesai</h3>
-                    <p className="text-4xl font-bold text-green-600 mt-2">{stats.reportsCompleted}</p>
+                    <p className="text-4xl font-bold text-green-600 mt-2">
+                        {loading ? '...' : stats.reportsCompleted}
+                    </p>
                     <div className="mt-4 text-sm text-green-600 flex items-center gap-1">
                         <i className="bi bi-check-circle-fill text-lg"></i>
                         <span>Kasus Terselesaikan</span>
                     </div>
                 </div>
-                {/* Add more stats cards here if needed */}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+                {loading && (
+                    <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center rounded-xl">
+                        <span className="text-slate-600 font-medium">Memuat Data...</span>
+                    </div>
+                )}
+
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-slate-700">Tren Laporan</h3>
-                        <select
-                            className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
-                            value={chartFilter}
-                            onChange={(e) => setChartFilter(e.target.value)}
-                        >
-                            <option value="year">Tahun Ini</option>
-                            <option value="month">Bulan Ini</option>
-                            <option value="week">Minggu Ini</option>
-                        </select>
                     </div>
                     <div className="h-[300px]">
                         <Line data={chartData} options={chartOptions} />
@@ -354,16 +440,6 @@ const Dashboard = () => {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-slate-700">Statistik Per Jenis Kasus</h3>
-                        <select
-                            className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
-                            value={kasusFilter}
-                            onChange={(e) => setKasusFilter(e.target.value)}
-                        >
-                            <option value="all">Semua Waktu</option>
-                            <option value="year">Tahun Ini</option>
-                            <option value="month">Bulan Ini</option>
-                            <option value="week">Minggu Ini</option>
-                        </select>
                     </div>
                     <div className="h-[300px]">
                         <Bar data={kasusChartData} options={horizontalBarOptions} />
@@ -371,20 +447,16 @@ const Dashboard = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative">
+                {loading && (
+                    <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center rounded-xl">
+                        <span className="text-slate-600 font-medium">Memuat Data...</span>
+                    </div>
+                )}
+
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-slate-700">Statistik Per Kecamatan</h3>
-                        <select
-                            className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
-                            value={kecamatanFilter}
-                            onChange={(e) => setKecamatanFilter(e.target.value)}
-                        >
-                            <option value="all">Semua Waktu</option>
-                            <option value="year">Tahun Ini</option>
-                            <option value="month">Bulan Ini</option>
-                            <option value="week">Minggu Ini</option>
-                        </select>
                     </div>
                     <div className="h-[300px]">
                         <Bar data={kecamatanChartData} options={horizontalBarOptions} />
@@ -394,16 +466,6 @@ const Dashboard = () => {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-bold text-slate-700">Statistik Per Usia & Jenis Kelamin</h3>
-                        <select
-                            className="text-sm border border-slate-200 rounded-lg px-3 py-1 text-slate-600 focus:outline-none focus:border-blue-500"
-                            value={usiaFilter}
-                            onChange={(e) => setUsiaFilter(e.target.value)}
-                        >
-                            <option value="all">Semua Waktu</option>
-                            <option value="year">Tahun Ini</option>
-                            <option value="month">Bulan Ini</option>
-                            <option value="week">Minggu Ini</option>
-                        </select>
                     </div>
                     <div className="h-[300px]">
                         <Bar data={usiaChartData} options={groupedBarOptions} />
@@ -427,8 +489,6 @@ const Dashboard = () => {
 
                             {stats?.regions?.map((region) => (
                                 <React.Fragment key={region.id}>
-                                    {/* Render GeoJSON if available */}
-                                    {/* Render GeoJSON if available */}
                                     {(() => {
                                         if (!region.geojson) return null;
                                         try {
@@ -455,42 +515,6 @@ const Dashboard = () => {
                                         }
                                     })()}
 
-                                    {/* Render Marker with Percentage */}
-                                    {/* Using a rough center or if geojson has center property. 
-                                        For now, we might need coordinates for the marker. 
-                                        Since we don't have explicit lat/long in the region stats unless added,
-                                        we might rely on the map centering or add lat/long to the DB/API.
-                                        
-                                        Constraint: The USER request said "pin pada wilayah tersebut". 
-                                        Without lat/long in DB for admin/kecamatan, we can't place it accurately without parsing GeoJSON centroid.
-                                        
-                                        Workaround for this iteration: 
-                                        I will assume the API returns lat/long for the kecamatan or I'll use a placeholder logic 
-                                        if GeoJSON is complex. But wait, `Kecamatan` model doesn't have lat/long.
-                                        It has `fileGeojson`. 
-                                        
-                                        For this step, I will *try* to place markers if I have data. 
-                                        If not, I might need to ask or update the backend to calculate centroids.
-                                        
-                                        Let's assume for now we won't render markers if no lat/long, 
-                                        OR I can quickly add a "mock" coordinate map for Sultra cities if needed, 
-                                        but that's brittle.
-                                        
-                                        Actually, `leafet` GeoJSON layer can have `onEachFeature` to attach popups. 
-                                        But users want a "pin... yang menunjukkan presentase". 
-                                        
-                                        I will add a `Marker` but I need lat lng. 
-                                        Let's check `Kecamatan` model again. It only has `fileGeojson`.
-                                        
-                                        Ideally backend parses GeoJSON to find center. 
-                                        I'll stick to just GeoJSON polygons for now and maybe add a popup with the percentage 
-                                        on click, OR attempt to use `pointToLayer` if the geojson is a Point. 
-                                        But likely it's a Polygon.
-                                        
-                                        Alternative: I will render the GeoJSON and bind a Tooltip 
-                                        that is permanent or on hover with the percentage. 
-                                        That's a "pin" equivalent for polygons.
-                                    */}
                                     {(() => {
                                         if (!region.geojson) return null;
                                         try {
@@ -498,12 +522,10 @@ const Dashboard = () => {
                                                 ? JSON.parse(region.geojson)
                                                 : region.geojson;
 
-                                            // Calculate center
                                             const layer = L.geoJSON(geoJsonData);
                                             const bounds = layer.getBounds();
                                             let center = bounds.getCenter();
 
-                                            // Manual fix for specific regions where centroid calculation isn't optimal
                                             const manualCenters = {
                                                 'Kadia': [-3.9794, 122.4994],
                                                 'Kambu': [-4.0060, 122.5250]
@@ -522,7 +544,6 @@ const Dashboard = () => {
                                                 html: `
                                                     <div style="position: relative; width: 40px; height: 40px;">
                                                         <svg viewBox="0 0 384 512" style="width: 100%; height: 100%; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
-                                                            <!-- Font Awesome Location Dot style path -->
                                                             <path fill="#ef4444" d="M215.7 499.2C267 435 384 279.4 384 192C384 86 298 0 192 0S0 86 0 192c0 87.4 117 243 168.3 307.2c12.3 15.3 35.1 15.3 47.4 0z"/>
                                                             <circle cx="192" cy="192" r="110" fill="white"/>
                                                         </svg>
@@ -532,7 +553,7 @@ const Dashboard = () => {
                                                     </div>
                                                 `,
                                                 iconSize: [40, 40],
-                                                iconAnchor: [20, 40], // Tip of the pin
+                                                iconAnchor: [20, 40],
                                                 popupAnchor: [0, -40]
                                             });
 
